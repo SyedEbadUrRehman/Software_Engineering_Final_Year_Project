@@ -17,15 +17,17 @@ class FileService
         }
 
         $file = null;
-        if ($type === "user") {
-            $file = Image::make($request->file('file'))->resize(400, 400);
-        } else {
-            $file = Image::make($request->file('file'));
-        }
+        // if ($type === "user") {
+        //     $file = Image::make($request->file('file'))->resize(400, 400);
+        // } else {
+        //     $file = Image::make($request->file('file'));
+        // }
+        $file = $request->file('file');
         $ext = $request->file('file');
         $extension = $ext->getClientOriginalExtension();
         $name = time() . '.' . $extension;
-        $file->save(public_path() . '/file/' . $name);
+        // $file->save(public_path() . '/file/' . $name);
+        $file->move(public_path('/file'), $name);
         $model->file = '/file/' .$name;
 
         return $model;

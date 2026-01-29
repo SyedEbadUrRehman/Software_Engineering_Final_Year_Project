@@ -23,7 +23,7 @@ let showCreatePost = ref(false)
         <div v-if="$page.url === '/'" id="TopNavHome" class="fixed z-30 md:hidden block w-full bg-white h-[61px] border-b border-b-gray-300">
             <div class="flex items-center justify-between h-full">
                 <Link href="/">
-                    <img class="w-[105px] ml-6 cursor-pointer" src="/insta-logo.png">
+                    <img class="w-[170px] ml-6 cursor-pointer" src="/SiteClipLogo.png">
                 </Link>
 
                 <div class="flex items-center w-[50%]">
@@ -63,8 +63,8 @@ let showCreatePost = ref(false)
         <div id="SideNav" class="fixed h-full bg-white xl:w-[280px] w-[80px] md:block hidden border-r border-r-gray-300">
 
             <Link href="/">
-                <img class="xl:hidden block w-[25px] mt-10 ml-[25px] mb-10 cursor-pointer" src="/insta-logo-small.png">
-                <img class="xl:block hidden w-[120px] mt-10 ml-6 mb-10 cursor-pointer" src="/insta-logo.png">
+                <img class="xl:hidden block w-[60px] mt-10 ml-[5px] mb-10 cursor-pointer" src="/SiteClipLogo.png">
+                <img class="xl:block hidden w-[120px] mt-10 ml-6 mb-10 cursor-pointer" src="/SiteClipLogo.png">
             </Link>
 
             <div class="px-3">

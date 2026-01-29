@@ -78,34 +78,35 @@ const textareaInput = (e) => {
                             </div>
                         </div>
 
-                        <div
-                            v-if="post.comments"
-                            class="p-3"
-                            v-for="comment in post.comments"
-                            :key="comment"
-                        >
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <img
-                                        class="rounded-full w-[38px] h-[38px]"
-                                        :src="comment.user.file"
-                                    >
-                                    <div class="ml-4 font-extrabold text-[15px]">
-                                        {{ comment.user.name }}
-                                        <span class="font-light text-gray-700 text-sm">{{ post.created_at }}</span>
+                        <div v-if="post.comments">
+                            <div
+                                class="p-3"
+                                v-for="comment in post.comments"
+                                :key="comment"
+                            >
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <img
+                                            class="rounded-full w-[38px] h-[38px]"
+                                            :src="comment.user.file"
+                                        >
+                                        <div class="ml-4 font-extrabold text-[15px]">
+                                            {{ comment.user.name }}
+                                            <span class="font-light text-gray-700 text-sm">{{ post.created_at }}</span>
+                                        </div>
                                     </div>
+
+                                    <DotsHorizontal
+                                        v-if="user.id === comment.user.id"
+                                        class="cursor-pointer"
+                                        @click="deleteType = 'Comment'; id = comment.id"
+                                        :size="27"
+                                    />
                                 </div>
 
-                                <DotsHorizontal
-                                    v-if="user.id === comment.user.id"
-                                    class="cursor-pointer"
-                                    @click="deleteType = 'Comment'; id = comment.id"
-                                    :size="27"
-                                />
-                            </div>
-
-                            <div class="text-[13px] pl-[55px]">
-                                {{ comment.text }}
+                                <div class="text-[13px] pl-[55px]">
+                                    {{ comment.text }}
+                                </div>
                             </div>
                         </div>
 
