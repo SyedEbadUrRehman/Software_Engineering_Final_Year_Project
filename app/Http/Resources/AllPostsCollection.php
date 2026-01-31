@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
@@ -14,35 +13,92 @@ class AllPostsCollection extends ResourceCollection
      */
     public function toArray(Request $request)
     {
+        // return $this->collection->map(function ($post) {
+        //     return [
+        //         'id' => $post->id,
+        //         'text' => $post->text,
+        //         'file' => $post->file,
+        //         'created_at' => $post->created_at->format(' M D Y'),
+        //         'comments' => $post->comments->map(function ($comment) {
+        //             return [
+        //                 'id' => $comment->id,
+        //                 'text' => $comment->text,
+        //                 'user' => [
+        //                     'id' => $comment->user->id,
+        //                     'name' => $comment->user->name,
+        //                     'file' => $comment->user->file
+        //                 ],
+        //             ];
+        //         }),
+        //         'likes' => $post->likes->map(function ($like) {
+        //             return [
+        //                 'id' => $like->id,
+        //                 'user_id' => $like->user_id,
+        //                 'post_id' => $like->post_id
+        //             ];
+        //         }),
+        //         'user' => [
+        //             'id' => $post->user->id,
+        //             'name' => $post->user->name,
+        //             'file' => $post->user->file
+        //         ]
+        //     ];
+        // });
         return $this->collection->map(function ($post) {
+
             return [
-                'id' => $post->id,
-                'text' => $post->text,
-                'file' => $post->file,
-                'created_at' => $post->created_at->format(' M D Y'),
-                'comments' => $post->comments->map(function ($comment) {
+                'id'                   => $post->id,
+                'text'                 => $post->text,
+                'file'                 => $post->file,
+                'created_at'           => $post->created_at->format(' M D Y'),
+
+                // ✅ Shared Circles Info
+                'shared_circles_count' => $post->sharedCircles->count(),
+
+                'shared_circles' => $post->sharedCircles->map(function ($circle) {
                     return [
-                        'id' => $comment->id,
+                        'id'       => $circle->id,
+                        'name'     => $circle->name,
+
+                        // pivot table id (post_circle_shares row id)
+                        'share_id' => $circle->pivot->id,
+                    ];
+                }),
+                'saves'=> $post->saves->map(function ($save) {
+                    return [
+                        'id'      => $save->id,
+                        'user_id' => $save->user_id,
+                    ];
+                }),
+
+                // ✅ Comments
+                'comments'             => $post->comments->map(function ($comment) {
+                    return [
+                        'id'   => $comment->id,
                         'text' => $comment->text,
                         'user' => [
-                            'id' => $comment->user->id,
+                            'id'   => $comment->user->id,
                             'name' => $comment->user->name,
-                            'file' => $comment->user->file
+                            'file' => $comment->user->file,
                         ],
                     ];
                 }),
+
+                // ✅ Likes
                 'likes' => $post->likes->map(function ($like) {
                     return [
-                        'id' => $like->id,
+                        'id'      => $like->id,
                         'user_id' => $like->user_id,
-                        'post_id' => $like->post_id
+                        'post_id' => $like->post_id,
                     ];
                 }),
-                'user' => [
-                    'id' => $post->user->id,
+
+                // ✅ Post Owner
+                'user'  => [
+                    'id'   => $post->user->id,
                     'name' => $post->user->name,
-                    'file' => $post->user->file
-                ]
+                    'file' => $post->user->file,
+                ],
             ];
         });
     }

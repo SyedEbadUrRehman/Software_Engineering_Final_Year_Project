@@ -1,11 +1,15 @@
 <?php
 
-use App\Http\Controllers\CommentController;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\UserController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CircleController;
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\SavedPostController;
+use App\Http\Controllers\CircleMemberController;
+use App\Http\Controllers\PostCircleShareController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,7 +40,37 @@ Route::middleware('auth')->group(function () {
     Route::post('/likes', [LikeController::class, 'store'])->name('likes.store');
     Route::delete('/likes/{id}', [LikeController::class, 'destroy'])->name('likes.destroy');
 
-    // Route::get('/circles', [UserController::class, 'show'])->name('circle.show');
+    // Circles CRUD
+    Route::resource('circles', CircleController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::get('/my-circles', [CircleController::class, 'myCircles'])
+        ->name('circles.my');
+
+    // Circle Members (New Backend Direct System)
+    Route::get('/circles/{circle}/members', [CircleMemberController::class, 'index'])
+        ->name('circles.members.index');
+
+    Route::post('/circles/{circle}/members', [CircleMemberController::class, 'store'])
+        ->name('circles.members.store');
+
+    Route::delete('/circles/{circle}/members/{user}', [CircleMemberController::class, 'destroy'])
+        ->name('circles.members.destroy');
+
+    // Share Posts into Circles
+    Route::post('/posts/{post}/share', [PostCircleShareController::class, 'store'])
+        ->name('posts.share');
+    Route::delete('/post-circle-shares/{postCircleShare}', [PostCircleShareController::class, 'destroy']
+    )->name('posts.unshare');
+
+    // Save Feature
+    Route::get('/saved',[SavedPostController::class, 'index'])
+        ->name('saves.index');
+    Route::post('/saves', [SavedPostController::class, 'store'])
+        ->name('saves.store');
+
+    Route::delete('/saves/{savedPost}', [SavedPostController::class, 'destroy'])
+        ->name('saves.destroy');
+
 });
 
 require __DIR__ . '/auth.php';

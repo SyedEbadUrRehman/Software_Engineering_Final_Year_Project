@@ -10,6 +10,8 @@ import HeartOutline from 'vue-material-design-icons/HeartOutline.vue';
 import Plus from 'vue-material-design-icons/Plus.vue';
 import AccountOutline from 'vue-material-design-icons/AccountOutline.vue';
 import Menu from 'vue-material-design-icons/Menu.vue';
+import AccountGroupOutline from "vue-material-design-icons/AccountGroupOutline.vue";
+import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue';
 
 const props = defineProps({ iconString: String })
 const { iconString } = toRefs(props)
@@ -20,8 +22,8 @@ let icon = null
 
 if (iconString.value === 'Home') icon = HomeOutline
 if (iconString.value === 'Search') icon = Magnify
-if (iconString.value === 'Explore') icon = Compass
-if (iconString.value === 'Messages') icon = SendOutline
+if (iconString.value === 'Circles') icon = AccountGroupOutline
+if (iconString.value === 'Saved') icon = BookmarkOutline
 if (iconString.value === 'Notifications') icon = HeartOutline
 if (iconString.value === 'Create') icon = Plus
 if (iconString.value === 'Profile') icon = AccountOutline

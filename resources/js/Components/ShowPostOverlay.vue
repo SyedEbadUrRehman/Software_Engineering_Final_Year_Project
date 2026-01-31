@@ -18,7 +18,7 @@ const user = usePage().props.auth.user
 const props = defineProps(['post'])
 const { post } = toRefs(props)
 
-defineEmits(['closeOverlay', 'addComment', 'updateLike', 'deleteSelected'])
+defineEmits(['closeOverlay', 'addComment', 'updateLike','updateSave', 'deleteSelected'])
 
 const textareaInput = (e) => {
     textarea.value.style.height = "auto";
@@ -118,6 +118,8 @@ const textareaInput = (e) => {
                         class="px-2 border-t mb-2"
                         :post="post"
                         @like="$emit('updateLike', $event)"
+                         @saved="$emit('updateSave', $event)"
+
                     />
 
                     <div class="absolute flex border bottom-0 w-full max-h-[200px] bg-white overflow-auto">

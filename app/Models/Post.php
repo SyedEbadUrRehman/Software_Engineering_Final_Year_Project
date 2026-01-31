@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,4 +22,15 @@ class Post extends Model
     {
         return $this->hasMany(Like::class);
     }
+    public function sharedCircles()
+    {
+        return $this->belongsToMany(Circle::class, 'post_circle_shares')
+            ->withPivot('id') // ✅ REQUIRED
+            ->withTimestamps();
+    }
+    public function saves()
+    {
+        return $this->hasMany(SavedPost::class);
+    }
+
 }
