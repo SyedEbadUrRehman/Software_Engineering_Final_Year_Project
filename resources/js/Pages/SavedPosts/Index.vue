@@ -6,9 +6,8 @@ import MainLayout from "@/Layouts/MainLayout.vue";
 import LikesSection from "@/Components/LikesSection.vue";
 import ShowPostOverlay from "@/Components/ShowPostOverlay.vue";
 
-
-
 import DotsHorizontal from "vue-material-design-icons/DotsHorizontal.vue";
+import Close from "vue-material-design-icons/Close.vue";
 
 let wWidth = ref(window.innerWidth);
 let currentSlide = ref(0);
@@ -175,7 +174,10 @@ const toggleSave = (post) => {
             preserveScroll: true,
 
             // ✅ IMPORTANT: Refresh overlay post
-            onFinish: () => updatedPost({ post }),
+            onFinish: () => {
+                updatedPost({ post });
+                openOverlay.value = false;
+            },
         });
     } else {
         // ✅ Save
@@ -187,12 +189,10 @@ const toggleSave = (post) => {
 
                 // ✅ IMPORTANT: Refresh overlay post
                 onFinish: () => updatedPost({ post }),
-            }
+            },
         );
     }
 };
-
-
 </script>
 
 <template>
@@ -200,7 +200,7 @@ const toggleSave = (post) => {
 
     <MainLayout>
         <div class="mx-auto lg:pl-0 md:pl-[80px] pl-0">
-         
+            
 
             <div
                 id="Posts"
@@ -284,17 +284,21 @@ const toggleSave = (post) => {
                         Shared in {{ post.shared_circles_count }} circles
                     </button>
                 </div>
-                
+
                 <div
                     v-if="openShareId === post.id"
-                    class="mt-4 p-5 bg-white rounded-2xl border border-gray-100 transition-all"
+                    class="mt-4 p-5 pt-7 bg-white rounded-2xl border border-gray-100 transition-all"
                 >
-                    <div class="relative mb-4">
+                    <div class="relative flex items-center mb-4">
                         <input
                             v-model="searchQuery"
                             type="text"
                             placeholder="Search circles to share..."
                             class="w-full pl-4 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-black transition"
+                        />
+                        <Close
+                            @click="toggleShare(post.id)"
+                            class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-6"
                         />
                     </div>
                     <div>
@@ -367,7 +371,10 @@ const toggleSave = (post) => {
         @updateLike="updateLike($event)"
         @deleteSelected="deleteFunc($event)"
         @updateSave="toggleSave($event)"
-
+        @updateShare="
+            toggleShare($event);
+            openOverlay = false;
+        "
         @closeOverlay="openOverlay = false"
     />
 
@@ -401,5 +408,3 @@ const toggleSave = (post) => {
         </div>
     </div>
 </template>
-
-

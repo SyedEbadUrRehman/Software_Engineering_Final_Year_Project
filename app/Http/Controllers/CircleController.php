@@ -29,7 +29,7 @@ class CircleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:200',
+            'name' => 'required|string|max:200|unique:circles,name',
         ]);
 
         Circle::create([
@@ -50,7 +50,7 @@ class CircleController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:200',
+            'name' => 'required|string|max:200|unique:circles,name',
         ]);
 
         $circle->update([

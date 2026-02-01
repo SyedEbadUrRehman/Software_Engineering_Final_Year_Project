@@ -119,7 +119,7 @@ const textareaInput = (e) => {
                         :post="post"
                         @like="$emit('updateLike', $event)"
                          @saved="$emit('updateSave', $event)"
-
+                        @share="$emit('updateShare', $event)"
                     />
 
                     <div class="absolute flex border bottom-0 w-full max-h-[200px] bg-white overflow-auto">

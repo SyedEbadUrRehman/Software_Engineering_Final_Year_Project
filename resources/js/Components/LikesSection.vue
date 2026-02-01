@@ -49,7 +49,7 @@ const isHeartActiveComputed = computed(() => {
                     <Bookmark
                         v-if="(post.saves ?? []).some((s) => s.user_id === user.id)"
                         :size="28"
-                        class="cursor-pointer"
+                        class="cursor-pointer text-blue-600"
                     />
 
                     <!-- Outline Icon if Not Saved -->
