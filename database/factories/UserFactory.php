@@ -2,8 +2,11 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
+use Carbon\Carbon;
+
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
@@ -18,12 +21,24 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+             'name' => $this->faker->name(),
+
+            // fake profile file/image
+            'file' => $this->faker->imageUrl(200, 200, 'people'),
+
+            'email' => $this->faker->unique()->safeEmail(),
+
+            'email_verified_at' => Carbon::now(),
+
+            'password' => Hash::make('password'),
+
             'remember_token' => Str::random(10),
-        ];
+
+            // Carbon timestamps
+            'created_at' => Carbon::now()->subDays(rand(1, 30)),
+            'updated_at' => Carbon::now(),
+
+           ];
     }
 
     /**

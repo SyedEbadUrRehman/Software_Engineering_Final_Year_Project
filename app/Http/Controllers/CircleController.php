@@ -71,7 +71,7 @@ class CircleController extends Controller
 
         $circle->delete();
 
-        return redirect()->back()->with('success', 'Circle deleted successfully!');
+        return redirect()->route('circles.index')->with('success', 'Circle updated successfully!');
     }
 
     public function myCircles()
