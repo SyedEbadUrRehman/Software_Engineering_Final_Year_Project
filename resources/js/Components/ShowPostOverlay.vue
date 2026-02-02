@@ -18,7 +18,7 @@ const user = usePage().props.auth.user
 const props = defineProps(['post'])
 const { post } = toRefs(props)
 
-defineEmits(['closeOverlay', 'addComment', 'updateLike','updateSave', 'deleteSelected'])
+defineEmits(['closeOverlay', 'addComment', 'updateLike','updateSave', 'deleteSelected','updateShare'])
 
 const textareaInput = (e) => {
     textarea.value.style.height = "auto";

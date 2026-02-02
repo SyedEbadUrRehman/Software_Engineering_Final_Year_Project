@@ -199,167 +199,180 @@ const toggleSave = (post) => {
     <Head title="SiteClip" />
 
     <MainLayout>
-        <div class="mx-auto lg:pl-0 md:pl-[80px] pl-0">
-            
-
+        <div
+            class="absolute xl:left-[330px] top-0 lg:left-[100px] left-[30px] w-[600px] lg:pl-0 md:pl-[80px] pl-0"
+        >
             <div
-                id="Posts"
-                class="px-4 max-w-[600px] mx-auto mt-10"
-                v-for="post in posts.data"
-                :key="post"
+                class="text-center sm:text-left fixed bg-white flex items-stretch flex-col w-full pt-16 pb-3"
             >
-                <div class="flex items-center justify-between py-2">
-                    <div class="flex items-center">
-                        <Link
-                            :href="route('users.show', { id: post.user.id })"
-                            class="flex items-center"
-                        >
-                            <img
-                                class="rounded-full w-[38px] h-[38px]"
-                                :src="post.user.file"
-                            />
-
-                            <div class="ml-4 font-extrabold text-[15px]">
-                                {{ post.user.name }}
-                            </div>
-                        </Link>
-                        <div
-                            class="flex items-center text-[15px] text-gray-500"
-                        >
-                            <span class="-mt-5 ml-2 mr-[5px] text-[35px]"
-                                >.</span
+                <h1 class="text-4xl font-black tracking-tighter text-gray-900">
+                    Saved
+                </h1>
+                <p class="text-gray-500 font-medium mt-2">
+                    Saves content privately for see later.
+                </p>
+            </div>
+            <div class="mt-36">
+                <div
+                    id="Posts"
+                    class="px-4 max-w-[600px] mx-auto mt-10"
+                    v-for="post in posts.data"
+                    :key="post"
+                >
+                    <div class="flex items-center justify-between py-2">
+                        <div class="flex items-center">
+                            <Link
+                                :href="
+                                    route('users.show', { id: post.user.id })
+                                "
+                                class="flex items-center"
                             >
-                            <div>{{ post.created_at }}</div>
-                        </div>
-                    </div>
+                                <img
+                                    class="rounded-full w-[38px] h-[38px]"
+                                    :src="post.user.file"
+                                />
 
-                    <DotsHorizontal
-                        v-if="user.id === post.user.id"
-                        class="cursor-pointer"
-                        :size="27"
-                        @click="
-                            showDeleteConfirm = true;
-                            deletePosId = post.id;
-                        "
-                    />
-                    <!-- @click="deleteFunc({id:post.id,deleteType : 'Post'})" -->
-                </div>
-                <div class="text-lg my-4">
-                    {{ post.text }}
-                </div>
-                <!-- <div class="bg-black rounded-lg w-full min-h-[400px] flex items-center">
+                                <div class="ml-4 font-extrabold text-[15px]">
+                                    {{ post.user.name }}
+                                </div>
+                            </Link>
+                            <div
+                                class="flex items-center text-[15px] text-gray-500"
+                            >
+                                <span class="-mt-5 ml-2 mr-[5px] text-[35px]"
+                                    >.</span
+                                >
+                                <div>{{ post.created_at }}</div>
+                            </div>
+                        </div>
+
+                        <DotsHorizontal
+                            v-if="user.id === post.user.id"
+                            class="cursor-pointer"
+                            :size="27"
+                            @click="
+                                showDeleteConfirm = true;
+                                deletePosId = post.id;
+                            "
+                        />
+                        <!-- @click="deleteFunc({id:post.id,deleteType : 'Post'})" -->
+                    </div>
+                    <div class="text-lg my-4">
+                        {{ post.text }}
+                    </div>
+                    <!-- <div class="bg-black rounded-lg w-full min-h-[400px] flex items-center">
                     <img class="mx-auto w-full" :src="post.file" />
                 </div> -->
 
-                <LikesSection
-                    :post="post"
-                    @like="updateLike($event)"
-                    @share="toggleShare"
-                    @comment="openOverlayToggler(post)"
-                    @saved="toggleSave"
-                />
+                    <LikesSection
+                        :post="post"
+                        @like="updateLike($event)"
+                        @share="toggleShare"
+                        @comment="openOverlayToggler(post)"
+                        @saved="toggleSave"
+                    />
 
-                <div class="text-black font-extrabold py-1">
-                    {{ post.likes.length }} likes
-                </div>
-                <!-- <div>
+                    <div class="text-black font-extrabold py-1">
+                        {{ post.likes.length }} likes
+                    </div>
+                    <!-- <div>
                     <span class="text-black font-extrabold">{{ post.user.name }}</span>
                     {{ post.text }}
                 </div> -->
-                <div class="flex justify-between">
-                    <button
-                        @click="
-                            currentPost = post;
-                            openOverlay = true;
-                        "
-                        class="text-gray-500 font-extrabold py-1"
-                    >
-                        View all {{ post.comments.length }} comments
-                    </button>
+                    <div class="flex justify-between">
+                        <button
+                            @click="
+                                currentPost = post;
+                                openOverlay = true;
+                            "
+                            class="text-gray-500 font-extrabold py-1"
+                        >
+                            View all {{ post.comments.length }} comments
+                        </button>
 
-                    <button
-                        class="text-gray-500 font-extrabold py-1"
-                        v-if="post.user.id === user.id"
-                    >
-                        Shared in {{ post.shared_circles_count }} circles
-                    </button>
-                </div>
-
-                <div
-                    v-if="openShareId === post.id"
-                    class="mt-4 p-5 pt-7 bg-white rounded-2xl border border-gray-100 transition-all"
-                >
-                    <div class="relative flex items-center mb-4">
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="Search circles to share..."
-                            class="w-full pl-4 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-black transition"
-                        />
-                        <Close
-                            @click="toggleShare(post.id)"
-                            class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-6"
-                        />
+                        <button
+                            class="text-gray-500 font-extrabold py-1"
+                            v-if="post.user.id === user.id"
+                        >
+                            Shared in {{ post.shared_circles_count }} circles
+                        </button>
                     </div>
-                    <div>
-                        <h4
-                            v-if="filteredCircles.length != 0"
-                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1"
-                        >
-                            Add To Circle
-                        </h4>
 
-                        <div
-                            class="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto custom-scrollbar"
-                        >
-                            <button
-                                v-for="circle in filteredCircles"
-                                :key="circle.id"
-                                @click="sharePost(post, circle.id)"
-                                class="px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-black text-gray-600 hover:bg-white hover:border-black hover:text-black hover:shadow-lg hover:shadow-gray-100 transition-all active:scale-95"
+                    <div
+                        v-if="openShareId === post.id"
+                        class="mt-4 p-5 pt-7 bg-white rounded-2xl border border-gray-100 transition-all"
+                    >
+                        <div class="relative flex items-center mb-4">
+                            <input
+                                v-model="searchQuery"
+                                type="text"
+                                placeholder="Search circles to share..."
+                                class="w-full pl-4 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-black transition"
+                            />
+                            <Close
+                                @click="toggleShare(post.id)"
+                                class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-6"
+                            />
+                        </div>
+                        <div>
+                            <h4
+                                v-if="filteredCircles.length != 0"
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1"
                             >
-                                + {{ circle.name }}
-                            </button>
-                        </div>
-                    </div>
-                    <div class="mb-5" v-if="post.shared_circles.length > 0">
-                        <h4
-                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1"
-                        >
-                            Currently Shared In
-                        </h4>
+                                Add To Circle
+                            </h4>
 
-                        <div
-                            v-if="post.shared_circles.length === 0"
-                            class="text-xs text-gray-400 italic px-1"
-                        >
-                            Not shared in any circle yet.
-                        </div>
-
-                        <div class="flex flex-wrap gap-2">
                             <div
-                                v-for="circle in post.shared_circles"
-                                :key="circle.id"
-                                class="flex items-center gap-2 px-3 py-1.5 bg-black text-white rounded-full shadow-sm hover:shadow-md transition-all group"
+                                class="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto custom-scrollbar"
                             >
-                                <span class="text-xs font-bold">{{
-                                    circle.name
-                                }}</span>
-
                                 <button
-                                    @click="unsharePost(circle.share_id)"
-                                    class="hover:text-red-400 transition-colors"
+                                    v-for="circle in filteredCircles"
+                                    :key="circle.id"
+                                    @click="sharePost(post, circle.id)"
+                                    class="px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-black text-gray-600 hover:bg-white hover:border-black hover:text-black hover:shadow-lg hover:shadow-gray-100 transition-all active:scale-95"
                                 >
-                                    <span class="text-[20px] leading-none"
-                                        >×</span
-                                    >
+                                    + {{ circle.name }}
                                 </button>
+                            </div>
+                        </div>
+                        <div class="mb-5" v-if="post.shared_circles.length > 0">
+                            <h4
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1"
+                            >
+                                Currently Shared In
+                            </h4>
+
+                            <div
+                                v-if="post.shared_circles.length === 0"
+                                class="text-xs text-gray-400 italic px-1"
+                            >
+                                Not shared in any circle yet.
+                            </div>
+
+                            <div class="flex flex-wrap gap-2">
+                                <div
+                                    v-for="circle in post.shared_circles"
+                                    :key="circle.id"
+                                    class="flex items-center gap-2 px-3 py-1.5 bg-black text-white rounded-full shadow-sm hover:shadow-md transition-all group"
+                                >
+                                    <span class="text-xs font-bold">{{
+                                        circle.name
+                                    }}</span>
+
+                                    <button
+                                        @click="unsharePost(circle.share_id)"
+                                        class="hover:text-red-400 transition-colors"
+                                    >
+                                        <span class="text-[20px] leading-none"
+                                            >×</span
+                                        >
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
             <div class="pb-20"></div>
         </div>
     </MainLayout>
