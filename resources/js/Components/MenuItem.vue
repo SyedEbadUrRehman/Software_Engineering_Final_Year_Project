@@ -4,14 +4,14 @@ import { usePage } from '@inertiajs/vue3';
 
 import HomeOutline from 'vue-material-design-icons/HomeOutline.vue';
 import Magnify from 'vue-material-design-icons/Magnify.vue';
-import Compass from 'vue-material-design-icons/Compass.vue';
-import SendOutline from 'vue-material-design-icons/SendOutline.vue';
 import HeartOutline from 'vue-material-design-icons/HeartOutline.vue';
 import Plus from 'vue-material-design-icons/Plus.vue';
 import AccountOutline from 'vue-material-design-icons/AccountOutline.vue';
 import Menu from 'vue-material-design-icons/Menu.vue';
 import AccountGroupOutline from "vue-material-design-icons/AccountGroupOutline.vue";
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue';
+import BellOutline from "vue-material-design-icons/BellOutline.vue";
+import Logout from "vue-material-design-icons/Logout.vue";
 
 const props = defineProps({ iconString: String })
 const { iconString } = toRefs(props)
@@ -24,10 +24,10 @@ if (iconString.value === 'Home') icon = HomeOutline
 if (iconString.value === 'Search') icon = Magnify
 if (iconString.value === 'Circles') icon = AccountGroupOutline
 if (iconString.value === 'Saved') icon = BookmarkOutline
-if (iconString.value === 'Notifications') icon = HeartOutline
+if (iconString.value === 'Notifications') icon = BellOutline
 if (iconString.value === 'Create') icon = Plus
 if (iconString.value === 'Profile') icon = AccountOutline
-if (iconString.value === 'Log out') icon = Menu
+if (iconString.value === 'Log out') icon = Logout
 
 </script>
 
@@ -37,7 +37,7 @@ if (iconString.value === 'Log out') icon = Menu
             <img
                 v-if="iconString === 'Profile'"
                 :class="{'mr-1': iconString === 'Profile'}"
-                class="rounded-full ml-[2px] w-[30px] cursor-pointer"
+                class="rounded-full ml-[2px] w-[30px] h-[30px] cursor-pointer"
                 :src="user.file"
             >
             <component v-else :is="icon" fillColor="#000000" :size="36" />

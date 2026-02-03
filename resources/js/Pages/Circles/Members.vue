@@ -93,7 +93,7 @@ const addMember = (userId) => {
 
     <MainLayout>
         <div
-            class="max-w-[1000px] mx-auto px-4 pt-6 pb-20 absolute xl:left-[330px] md:left-[100px] left-1/2 md:translate-x-0 -translate-x-1/2"
+            class="max-w-[1000px] lg:min-w-[calc(100%-300px)] md:min-w-[calc(100%-100px)] min-w-full mx-auto px-4 pt-6 pb-20 absolute xl:left-[300px] md:left-[100px] left-0 "
         >
             <div class="flex items-center gap-4 mb-6">
                 <h1 class="text-2xl font-black tracking-tight">

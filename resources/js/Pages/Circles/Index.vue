@@ -57,7 +57,7 @@ const deleteCircle = (circleId) => {
     <Head title="My Circles" />
 
     <MainLayout>
-        <div class="max-w-[1000px] mx-auto px-4 pt-10 pb-20">
+        <div class="!max-w-[1000px]  lg:min-w-[calc(100%-300px)] md:min-w-[calc(100%-100px)] min-w-full mx-auto px-4 pt-10 pb-20 absolute xl:left-[300px] md:left-[80px] left-0">
             <div class="mb-10 text-center sm:text-left">
                 <h1 class="text-4xl font-black tracking-tighter text-gray-900">
                     Circles

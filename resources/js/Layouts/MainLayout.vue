@@ -13,6 +13,8 @@ import ChevronLeft from "vue-material-design-icons/ChevronLeft.vue";
 import AccountPlusOutline from "vue-material-design-icons/AccountPlusOutline.vue";
 import AccountGroupOutline from "vue-material-design-icons/AccountGroupOutline.vue";
 import BookmarkOutline from "vue-material-design-icons/BookmarkOutline.vue";
+import BellOutline from "vue-material-design-icons/BellOutline.vue";
+import Logout from "vue-material-design-icons/Logout.vue";
 
 import MenuItem from "@/Components/MenuItem.vue";
 import CreatePostOverlay from "@/Components/CreatePostOverlay.vue";
@@ -30,24 +32,20 @@ let showCreatePost = ref(false);
             <div class="flex items-center justify-between h-full">
                 <Link href="/">
                     <img
-                        class="w-[170px] ml-6 cursor-pointer"
+                        class="w-[100px] ml-6 cursor-pointer"
                         src="/SiteClipLogo.png"
                     />
                 </Link>
 
-                <div class="flex items-center w-[50%]">
-                    <div
-                        class="flex items-center w-full bg-gray-100 rounded-lg"
-                    >
-                        <Magnify class="pl-4" fillColor="#8E8E8E" :size="27" />
-                        <input
+                <div class="flex items-center">
+                    <Magnify fillColor="#000000" :size="27" />
+                    <!-- <input
                             type="text"
                             placeholder="Search"
                             class="bg-transparent w-full placeholder-[#8E8E8E] border-0 ring-0 focus:ring-0"
-                        />
-                    </div>
+                        /> -->
 
-                    <HeartOutline
+                    <BellOutline
                         class="pl-4 pr-3"
                         fillColor="#000000"
                         :size="27"
@@ -244,27 +242,32 @@ let showCreatePost = ref(false);
                     class="cursor-pointer"
                 />
             </Link>
-            <BookmarkOutline
-                fillColor="#000000"
-                :size="33"
-                class="cursor-pointer"
-            />
+            <Link href="/saved">
+                <BookmarkOutline
+                    fillColor="#000000"
+                    :size="33"
+                    class="cursor-pointer"
+                />
+            </Link>
             <Plus
                 @click="showCreatePost = true"
                 fillColor="#000000"
                 :size="33"
                 class="cursor-pointer"
             />
-            <AccountOutline
-                fillColor="#000000"
-                :size="33"
-                class="cursor-pointer"
-            />
+
             <Link :href="route('users.show', { id: $page.props.auth.user.id })">
                 <img
-                    class="rounded-full w-[30px] cursor-pointer"
+                    class="rounded-[50%] w-[30px] h-[30px] cursor-pointer"
                     :src="$page.props.auth.user.file"
                 />
+            </Link>
+            <Link
+                :href="route('logout')"
+                as="button"
+                method="post"
+            >
+                <Logout fillColor="#000000" :size="30" class="cursor-pointer" />
             </Link>
         </div>
     </div>

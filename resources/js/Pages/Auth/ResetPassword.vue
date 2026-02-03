@@ -28,6 +28,7 @@ const submit = () => {
 <template>
     <GuestLayout>
         <Head title="Reset Password" />
+        <img class="mx-auto pt-8 pb-10" width="200" src="/SiteClipLogo.png">
 
         <form @submit.prevent="submit">
             <div>

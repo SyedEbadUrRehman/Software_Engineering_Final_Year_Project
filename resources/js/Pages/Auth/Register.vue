@@ -25,9 +25,9 @@ const submit = () => {
     <GuestLayout>
         <Head title="Register" />
 
-        <img class="mx-auto pt-8 pb-6" width="200" src="/insta-logo.png">
+        <img class="mx-auto pt-8 pb-6" width="200" src="/SiteClipLogo.png">
 
-        <div class="text-gray-600 text-center font-extrabold text-[22px] mb-4">Sign up to see photos and videos from your friends.</div>
+        <div class="text-gray-600 text-center font-extrabold text-[22px] mb-4">Sign up to share thought with your friends.</div>
 
         <form @submit.prevent="submit">
             <div>

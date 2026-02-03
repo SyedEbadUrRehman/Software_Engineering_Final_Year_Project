@@ -1,10 +1,11 @@
 <?php
 namespace App\Http\Controllers;
 
+use Inertia\Inertia;
 use App\Models\Circle;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
 
 class CircleController extends Controller
 {
@@ -29,7 +30,16 @@ class CircleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:200|unique:circles,name',
+            'name' => [
+                'required',
+                'string',
+                'max:200',
+
+                // ✅ Unique per user
+                Rule::unique('circles')->where(function ($query) {
+                    return $query->where('user_id', Auth::id());
+                }),
+            ],
         ]);
 
         Circle::create([
@@ -39,7 +49,6 @@ class CircleController extends Controller
 
         return redirect()->back()->with('success', 'Circle created successfully!');
     }
-
     /**
      * Update circle name
      */
@@ -50,7 +59,18 @@ class CircleController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:200|unique:circles,name',
+            'name' => [
+                'required',
+                'string',
+                'max:200',
+
+                // ✅ Unique per user, ignore current circle
+                Rule::unique('circles')
+                    ->where(function ($query) {
+                        return $query->where('user_id', Auth::id());
+                    })
+                    ->ignore($circle->id),
+            ],
         ]);
 
         $circle->update([

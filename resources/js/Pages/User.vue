@@ -95,7 +95,7 @@ const getUploadedImage = (e) => {
 
                 <label for="fileUser">
                     <img
-                        class="rounded-full object-fit md:w-[200px] w-[100px] cursor-pointer"
+                        class="rounded-[50%] object-fit md:w-[210px] w-[120px] md:h-[160px] h-[90px] cursor-pointer"
                         :src="user.file"
                     >
                 </label>

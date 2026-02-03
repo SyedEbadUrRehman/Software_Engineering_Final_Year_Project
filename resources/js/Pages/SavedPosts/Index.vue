@@ -200,7 +200,7 @@ const toggleSave = (post) => {
 
     <MainLayout>
         <div
-            class="absolute xl:left-[330px] top-0 lg:left-[100px] left-[30px] w-[600px] lg:pl-0 md:pl-[80px] pl-0"
+            class="absolute xl:left-[330px] top-0 md:left-[100px] left-0 md:w-[600px] w-full p-0"
         >
             <div
                 class="text-center sm:text-left fixed bg-white flex items-stretch flex-col w-full pt-16 pb-3"
@@ -215,7 +215,7 @@ const toggleSave = (post) => {
             <div class="mt-36">
                 <div
                     id="Posts"
-                    class="px-4 max-w-[600px] mx-auto mt-10"
+                    class="px-4 md:max-w-[600px] w-full mx-auto mt-10"
                     v-for="post in posts.data"
                     :key="post"
                 >
@@ -255,14 +255,12 @@ const toggleSave = (post) => {
                                 deletePosId = post.id;
                             "
                         />
-                        <!-- @click="deleteFunc({id:post.id,deleteType : 'Post'})" -->
+                      
                     </div>
                     <div class="text-lg my-4">
                         {{ post.text }}
                     </div>
-                    <!-- <div class="bg-black rounded-lg w-full min-h-[400px] flex items-center">
-                    <img class="mx-auto w-full" :src="post.file" />
-                </div> -->
+                  
 
                     <LikesSection
                         :post="post"
@@ -275,11 +273,8 @@ const toggleSave = (post) => {
                     <div class="text-black font-extrabold py-1">
                         {{ post.likes.length }} likes
                     </div>
-                    <!-- <div>
-                    <span class="text-black font-extrabold">{{ post.user.name }}</span>
-                    {{ post.text }}
-                </div> -->
-                    <div class="flex justify-between">
+                   
+                    <div class="flex justify-between gap-1">
                         <button
                             @click="
                                 currentPost = post;
