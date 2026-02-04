@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,9 +10,9 @@ class Circle extends Model
 
     protected $fillable = [
         'user_id',
-        'name'
+        'name',
     ];
-     // Circle owner
+    // Circle owner
     public function owner()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -31,14 +30,18 @@ class Circle extends Model
     }
 
     // Posts shared in this circle
-   public function sharedPosts()
-{
-    return $this->belongsToMany(
-        Post::class,
-        'post_circle_shares'
-    )
-    ->withPivot('id')
-    ->withTimestamps();
-}
+    public function sharedPosts()
+    {
+        return $this->belongsToMany(
+            Post::class,
+            'post_circle_shares'
+        )
+            ->withPivot('id')
+            ->withTimestamps();
+    }
+    public function memberRecords()
+    {
+        return $this->hasMany(CircleMember::class);
+    }
 
 }

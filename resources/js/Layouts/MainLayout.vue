@@ -38,7 +38,9 @@ let showCreatePost = ref(false);
                 </Link>
 
                 <div class="flex items-center">
+                    <Link :href="route('search.index')">
                     <Magnify fillColor="#000000" :size="27" />
+                    </Link>
                     <!-- <input
                             type="text"
                             placeholder="Search"
@@ -87,7 +89,10 @@ let showCreatePost = ref(false);
                 <Link href="/">
                     <MenuItem iconString="Home" class="mb-4" />
                 </Link>
-                <MenuItem iconString="Search" class="mb-4" />
+                <Link :href="route('search.index')">
+                    <MenuItem iconString="Search" class="mb-4" />
+                </Link>
+
                 <Link href="/circles">
                     <MenuItem iconString="Circles" class="mb-4" />
                 </Link>
@@ -215,10 +220,10 @@ let showCreatePost = ref(false);
                 <div class="max-w-[300px] mt-5">
                     <div class="text-sm text-gray-400">
                         About Help Press API Jobs Privacy Terms Locations
-                        Language Meta Verified
+                        Language  Verified
                     </div>
                     <div class="text-left text-gray-400 mt-4">
-                        © 2023 INSTAGRAM FROM META
+                        © Thought Cliper by SiteClip.
                     </div>
                 </div>
             </div>

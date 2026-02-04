@@ -6,6 +6,7 @@ use App\Http\Controllers\LikeController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CircleController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\SavedPostController;
 use App\Http\Controllers\CircleMemberController;
@@ -63,13 +64,17 @@ Route::middleware('auth')->group(function () {
     )->name('posts.unshare');
 
     // Save Feature
-    Route::get('/saved',[SavedPostController::class, 'index'])
+    Route::get('/saved', [SavedPostController::class, 'index'])
         ->name('saves.index');
     Route::post('/saves', [SavedPostController::class, 'store'])
         ->name('saves.store');
 
     Route::delete('/saves/{savedPost}', [SavedPostController::class, 'destroy'])
         ->name('saves.destroy');
+
+    // search page route
+    Route::get('/search', [SearchController::class, 'index'])
+        ->name('search.index');
 
 });
 
