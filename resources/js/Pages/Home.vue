@@ -10,7 +10,7 @@ import "vue3-carousel/dist/carousel.css";
 import { Carousel, Slide, Navigation } from "vue3-carousel";
 
 import DotsHorizontal from "vue-material-design-icons/DotsHorizontal.vue";
-import Close from 'vue-material-design-icons/Close.vue';
+import Close from "vue-material-design-icons/Close.vue";
 
 let wWidth = ref(window.innerWidth);
 let currentSlide = ref(0);
@@ -23,52 +23,78 @@ const searchQuery = ref(""); // Tracks the text in the search box
 const openShareId = ref(null); // Tracks which post ID has the share div open
 
 const user = usePage().props.auth.user;
-const props = defineProps({ posts: Object, allUsers: Object,myCircleIds: Array });
+const props = defineProps({
+    posts: Object,
+    allUsers: Object,
+    myCircleIds: Array,
+});
 const { posts, allUsers } = toRefs(props);
 
+// real time event listener by echo
 
-// real time event listener by echo 
+// --- HELPER FUNCTION ---
+// This finds the post in the list and updates just its likes
+const handleReactionUpdate = (eventData) => {
+    // Find the post in our current feed
+    const post = posts.value.data.find((p) => p.id === eventData.id);
+
+    if (post) {
+        console.log(`Updating likes for Post #${eventData.id}`);
+        // Swap the old likes array with the new one from the server
+        post.likes = eventData.likes;
+    }
+};
 
 onMounted(() => {
-    // 1. Listen for "Post Created" (Syncs my posts across my own tabs)
+    // 1. MY USER CHANNEL
     window.Echo.private(`App.Models.User.${user.id}`)
-        .listen('.post.created', (e) => {
-            console.log('My new post (other tab):', e);
+        .listen(".post.created", (e) => {
+            console.log("My new post (other tab):", e);
+        })
+        .listen(".post.like.updated", (e) => {
+            // <--- UPDATED NAME
+            handleReactionUpdate(e);
         });
 
     // 2. Listen for "Post Shared" in my Circles
     if (props.myCircleIds && props.myCircleIds.length) {
         props.myCircleIds.forEach((circleId) => {
-            
             window.Echo.private(`circle.${circleId}`)
-                .listen('.post.shared', (e) => {
+                .listen(".post.shared", (e) => {
                     // 'e' is now the clean object from AllPostsCollection
                     // console.log(`Real-time post shared in Circle ${circleId}:`, e);
-                    
+
                     // To add to feed dynamically:
                     posts.value.data.unshift(e);
                 })
                 // B. Handle Unshared Post (Remove)
-                .listen('.post.unshared', (e) => {
+                .listen(".post.unshared", (e) => {
                     // console.log(`Unshared from Circle ${circleId}:`, e);
-                    
+
                     // Logic: Remove post ONLY if I am NOT the owner.
                     // (Owners should still see their own posts even if unshared)
-                    const postIndex = posts.value.data.findIndex(post => post.id === e.id);
-                    
+                    const postIndex = posts.value.data.findIndex(
+                        (post) => post.id === e.id,
+                    );
+
                     if (postIndex !== -1) {
                         const post = posts.value.data[postIndex];
-                        
+
                         // If I am NOT the owner, remove it from my view
                         if (post.user.id !== user.id) {
-                            posts.value.data = posts.value.data.filter(p => p.id !== e.id);
+                            posts.value.data = posts.value.data.filter(
+                                (p) => p.id !== e.id,
+                            );
                         }
                     }
                 })
+                .listen(".post.like.updated", (e) => {
+                    // <--- UPDATED NAME
+                    handleReactionUpdate(e);
+                })
                 .error((error) => {
-                    console.error('Channel Error:', error);
+                    console.error("Channel Error:", error);
                 });
-                
         });
     }
 });
@@ -78,8 +104,6 @@ onUnmounted(() => {
     window.Echo.leave(`App.Models.User.${user.id}`);
     props.myCircleIds.forEach((id) => window.Echo.leave(`circle.${id}`));
 });
-
-
 
 const toggleShare = async (postId) => {
     if (openShareId.value === postId) {
@@ -126,7 +150,6 @@ const unsharePost = (shareId) => {
         preserveScroll: true,
     });
 };
-
 
 const openOverlayToggler = (post) => {
     currentPost.value = post;
@@ -382,7 +405,10 @@ const toggleSave = (post) => {
                             placeholder="Search circles to share..."
                             class="w-full pl-4 pr-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-black transition"
                         />
-                        <Close @click="toggleShare(post.id)" class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-6" />
+                        <Close
+                            @click="toggleShare(post.id)"
+                            class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-6"
+                        />
                     </div>
                     <div>
                         <h4
@@ -454,7 +480,10 @@ const toggleSave = (post) => {
         @updateLike="updateLike($event)"
         @deleteSelected="deleteFunc($event)"
         @updateSave="toggleSave($event)"
-        @updateShare="toggleShare($event);openOverlay = false;"
+        @updateShare="
+            toggleShare($event);
+            openOverlay = false;
+        "
         @closeOverlay="openOverlay = false"
     />
 
