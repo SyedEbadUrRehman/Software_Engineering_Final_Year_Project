@@ -18,13 +18,13 @@ export default defineConfig({
             },
         }),
     ],
-     server: {
-        host: "0.0.0.0",   // Allow network access
-        port: 5173,        // Default Vite port
-        strictPort: true,
-         cors: true,
-        hmr: {
-            host: "192.168.1.9", // change later if needed
-        },
-    },
+    //  server: {
+    //     host: "0.0.0.0",   // Allow network access
+    //     port: 5173,        // Default Vite port
+    //     strictPort: true,
+    //      cors: true,
+    //     hmr: {
+    //         host: "192.168.1.9", // change later if needed
+    //     },
+    // },
 });

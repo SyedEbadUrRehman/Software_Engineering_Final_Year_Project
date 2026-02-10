@@ -1,5 +1,6 @@
 <?php
 
+use App\Events\TestEvent;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LikeController;
@@ -77,5 +78,18 @@ Route::middleware('auth')->group(function () {
         ->name('search.index');
 
 });
+
+
+
+
+
+
+
+Route::get('/fire', function () {
+    broadcast(new TestEvent());
+    return 'Event fired';
+});
+
+
 
 require __DIR__ . '/auth.php';

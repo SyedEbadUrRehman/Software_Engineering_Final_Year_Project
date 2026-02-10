@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, toRefs, computed } from "vue";
+import { ref, onMounted, toRefs, computed } from "vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import MainLayout from "@/Layouts/MainLayout.vue";
 
@@ -23,62 +23,24 @@ const searchQuery = ref(""); // Tracks the text in the search box
 const openShareId = ref(null); // Tracks which post ID has the share div open
 
 const user = usePage().props.auth.user;
-const props = defineProps({ posts: Object, allUsers: Object,myCircleIds: Array });
+const props = defineProps({ posts: Object, allUsers: Object });
 const { posts, allUsers } = toRefs(props);
 
 
-// real time event listener by echo 
 
 onMounted(() => {
-    // 1. Listen for "Post Created" (Syncs my posts across my own tabs)
-    window.Echo.private(`App.Models.User.${user.id}`)
-        .listen('.post.created', (e) => {
-            console.log('My new post (other tab):', e);
-        });
+     console.log('Home mounted')
+    console.log('Echo instance:', window.Echo)
 
-    // 2. Listen for "Post Shared" in my Circles
-    if (props.myCircleIds && props.myCircleIds.length) {
-        props.myCircleIds.forEach((circleId) => {
-            
-            window.Echo.private(`circle.${circleId}`)
-                .listen('.post.shared', (e) => {
-                    // 'e' is now the clean object from AllPostsCollection
-                    // console.log(`Real-time post shared in Circle ${circleId}:`, e);
-                    
-                    // To add to feed dynamically:
-                    posts.value.data.unshift(e);
-                })
-                // B. Handle Unshared Post (Remove)
-                .listen('.post.unshared', (e) => {
-                    // console.log(`Unshared from Circle ${circleId}:`, e);
-                    
-                    // Logic: Remove post ONLY if I am NOT the owner.
-                    // (Owners should still see their own posts even if unshared)
-                    const postIndex = posts.value.data.findIndex(post => post.id === e.id);
-                    
-                    if (postIndex !== -1) {
-                        const post = posts.value.data[postIndex];
-                        
-                        // If I am NOT the owner, remove it from my view
-                        if (post.user.id !== user.id) {
-                            posts.value.data = posts.value.data.filter(p => p.id !== e.id);
-                        }
-                    }
-                })
-                .error((error) => {
-                    console.error('Channel Error:', error);
-                });
-                
-        });
-    }
-});
+    window.Echo.channel('test-channel')
+        .subscribed(() => {
+            console.log('✅ Subscribed to test-channel')
+        })
+        .listen('.test-event', (e) => {
+            console.log('🔥 EVENT RECEIVED:', e)
+        })
 
-onUnmounted(() => {
-    // Cleanup
-    window.Echo.leave(`App.Models.User.${user.id}`);
-    props.myCircleIds.forEach((id) => window.Echo.leave(`circle.${id}`));
-});
-
+})
 
 
 const toggleShare = async (postId) => {
@@ -127,6 +89,11 @@ const unsharePost = (shareId) => {
     });
 };
 
+onMounted(() => {
+    window.addEventListener("resize", () => {
+        wWidth.value = window.innerWidth;
+    });
+});
 
 const openOverlayToggler = (post) => {
     currentPost.value = post;

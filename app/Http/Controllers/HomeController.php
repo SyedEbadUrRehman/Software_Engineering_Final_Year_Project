@@ -46,7 +46,8 @@ class HomeController extends Controller
         // $posts = Post::orderBy('created_at', 'desc')->get();
         return Inertia::render('Home', [
             'posts' => new AllPostsCollection($posts),
-            'allUsers' => User::all()
+            'allUsers' => User::all(),
+            'myCircleIds' => $circleIds
         ]);
     }
 }
