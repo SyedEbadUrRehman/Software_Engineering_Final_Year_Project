@@ -1,11 +1,15 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Events\PostLikeUpdated;
 use App\Models\Like;
 use App\Models\Post;
+use App\Models\User;
 use Illuminate\Http\Request;
+use App\Events\PostLikeUpdated;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
+use App\Notifications\PostActivityNotification;
+use Illuminate\Support\Facades\Notification;
 
 class LikeController extends Controller
 {
@@ -27,6 +31,11 @@ class LikeController extends Controller
         if ($post) {
             // Broadcast event to owner and circles
             broadcast(new PostLikeUpdated($post))->toOthers();
+        }
+        if ($post->user_id !== Auth::id()) {
+            $postOwner = User::find($post->user_id);
+            // Pass 'like' as the type
+            $postOwner->notify(new PostActivityNotification($post, Auth::user(), 'like'));
         }
     }
 

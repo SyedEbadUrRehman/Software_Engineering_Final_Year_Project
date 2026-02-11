@@ -1,13 +1,16 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Post;
+use App\Models\Circle;
 use App\Events\PostShared;
 use App\Events\PostUnshared;
-use App\Models\Post;
-use App\Models\PostCircleShare;
 use Illuminate\Http\Request;
+use App\Models\PostCircleShare;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\PostActivityNotification;
 
 class PostCircleShareController extends Controller
 {
@@ -31,12 +34,26 @@ class PostCircleShareController extends Controller
         ], [
             'shared_by' => Auth::id(),
         ]);
-        // --- UPDATE HERE ---
+
         // 1. Load relationships required by AllPostsCollection
         $post->load(['user', 'comments.user', 'likes', 'sharedCircles', 'saves']);
-
         // 2. Broadcast the event
         broadcast(new PostShared($post, $request->circle_id))->toOthers();
+
+        // 3. SEND NOTIFICATIONS (New Logic)
+        // A. Find the circle
+        $circle = Circle::find($request->circle_id);
+
+        // B. Get all members of the circle EXCEPT the person sharing it
+        // Assuming you have a 'members' relationship on your Circle model
+        $membersToNotify = $circle->members()
+            ->where('users.id', '!=', Auth::id()) // Don't notify myself
+            ->get();
+
+        if ($membersToNotify->count() > 0) {
+            // Pass 'share' as the type
+            Notification::send($membersToNotify, new PostActivityNotification($post, Auth::user(), 'share'));
+        }
         return redirect()->back()->with('success', 'Post shared into circle!');
     }
 

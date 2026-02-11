@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from "vue";
-import { Link } from "@inertiajs/vue3";
+import { ref, onMounted, computed } from "vue"; // Import computed
+import { Link, usePage } from "@inertiajs/vue3"; // Import usePage
 
 import Magnify from "vue-material-design-icons/Magnify.vue";
 import HeartOutline from "vue-material-design-icons/HeartOutline.vue";
@@ -20,6 +20,25 @@ import MenuItem from "@/Components/MenuItem.vue";
 import CreatePostOverlay from "@/Components/CreatePostOverlay.vue";
 
 let showCreatePost = ref(false);
+
+// 1. Get initial count from Middleware
+const page = usePage();
+// We use a ref so we can increment it in real-time without reloading
+const unreadCount = ref(page.props.auth.unreadNotificationCount || 0);
+
+onMounted(() => {
+    // 2. Listen for Real-Time Notifications
+    // Echo has a special helper .notification() for Laravel Notifications
+    window.Echo.private(
+        `App.Models.User.${page.props.auth.user.id}`,
+    ).notification((notification) => {
+        console.log("Notification received:", notification);
+        unreadCount.value++;
+
+        // Optional: Play a sound
+        // new Audio('/notification.mp3').play();
+    });
+});
 </script>
 
 <template>
@@ -39,19 +58,29 @@ let showCreatePost = ref(false);
 
                 <div class="flex items-center">
                     <Link :href="route('search.index')">
-                    <Magnify fillColor="#000000" :size="27" />
+                        <Magnify fillColor="#000000" :size="27" />
                     </Link>
                     <!-- <input
                             type="text"
                             placeholder="Search"
                             class="bg-transparent w-full placeholder-[#8E8E8E] border-0 ring-0 focus:ring-0"
                         /> -->
-
-                    <BellOutline
+                    <div class="relative pl-4 pr-3 cursor-pointer">
+                        <Link :href="route('notifications.index')">
+                            <BellOutline fillColor="#000000" :size="27" />
+                            <div
+                                v-if="unreadCount > 0"
+                                class="absolute top-0 right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white"
+                            >
+                                {{ unreadCount }}
+                            </div>
+                        </Link>
+                    </div>
+                    <!-- <BellOutline
                         class="pl-4 pr-3"
                         fillColor="#000000"
                         :size="27"
-                    />
+                    /> -->
                 </div>
             </div>
         </div>
@@ -99,9 +128,23 @@ let showCreatePost = ref(false);
                 <Link href="/saved">
                     <MenuItem iconString="Saved" class="mb-4" />
                 </Link>
-                <Link href="/circles">
+                <!-- <Link href="/circles">
                     <MenuItem iconString="Notifications" class="mb-4" />
-                </Link>
+                </Link> -->
+                
+                    <Link
+                        :href="route('notifications.index')"
+                        class="relative block"
+                    >
+                        <MenuItem iconString="Notifications" class="mb-4" />
+                        <div
+                            v-if="unreadCount > 0"
+                            class="absolute top-2 left-[35px] bg-red-500 text-white text-[11px] font-bold px-1.5 rounded-full"
+                        >
+                            {{ unreadCount }}
+                        </div>
+                    </Link>
+             
                 <MenuItem
                     @click="showCreatePost = true"
                     iconString="Create"
@@ -220,7 +263,7 @@ let showCreatePost = ref(false);
                 <div class="max-w-[300px] mt-5">
                     <div class="text-sm text-gray-400">
                         About Help Press API Jobs Privacy Terms Locations
-                        Language  Verified
+                        Language Verified
                     </div>
                     <div class="text-left text-gray-400 mt-4">
                         © Thought Cliper by SiteClip.
@@ -267,11 +310,7 @@ let showCreatePost = ref(false);
                     :src="$page.props.auth.user.file"
                 />
             </Link>
-            <Link
-                :href="route('logout')"
-                as="button"
-                method="post"
-            >
+            <Link :href="route('logout')" as="button" method="post">
                 <Logout fillColor="#000000" :size="30" class="cursor-pointer" />
             </Link>
         </div>

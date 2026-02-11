@@ -34,6 +34,7 @@ class HandleInertiaRequests extends Middleware
         return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $request->user(),
+                'unreadNotificationCount' => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
             ],
             'randomUsers' => User::inRandomOrder()->limit(5)->get(),
             'ziggy' => function () use ($request) {

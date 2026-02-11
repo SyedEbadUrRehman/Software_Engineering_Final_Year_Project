@@ -5,7 +5,10 @@ use App\Events\PostCommentUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\Post;
+use App\Models\User;
+use App\Notifications\PostActivityNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
@@ -31,6 +34,12 @@ class CommentController extends Controller
         $post = Post::find($request->input('post_id'));
         if ($post) {
             broadcast(new PostCommentUpdated($post))->toOthers();
+        }
+
+        if ($post->user_id !== Auth::id()) {
+            $postOwner = User::find($post->user_id);
+            // Pass 'comment' as the type
+            $postOwner->notify(new PostActivityNotification($post, Auth::user(), 'comment'));
         }
     }
 
