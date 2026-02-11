@@ -39,7 +39,7 @@ const handleReactionUpdate = (eventData) => {
     const post = posts.value.data.find((p) => p.id === eventData.id);
 
     if (post) {
-        console.log(`Updating likes for Post #${eventData.id}`);
+        // console.log(`Updating likes for Post #${eventData.id}`);
         // Swap the old likes array with the new one from the server
         post.likes = eventData.likes;
     }
@@ -51,18 +51,31 @@ const handleCommentUpdate = (eventData) => {
     const post = posts.value.data.find((p) => p.id === eventData.id);
 
     if (post) {
-        console.log(`Updating comments for Post #${eventData.id}`);
+        // console.log(`Updating comments for Post #${eventData.id}`);
         // Swap the comments array with the new real-time data
         post.comments = eventData.comments;
     }
 };
 
+// --- HELPER FUNCTION: Remove Post ---
+const handlePostDeletion = (eventData) => {
+    // console.log(`Removing Post #${eventData.id}`);
+    posts.value.data = posts.value.data.filter((p) => p.id !== eventData.id);
+    currentPost.value = null;
+    openOverlay.value = false;
+};
 
 onMounted(() => {
     // 1. MY USER CHANNEL
     window.Echo.private(`App.Models.User.${user.id}`)
+        // A. Post Created (Sync other tabs)
         .listen(".post.created", (e) => {
-            console.log("My new post (other tab):", e);
+            // console.log("My new post (other tab):", e);
+            posts.value.data.unshift(e);
+        })
+        // B. Post Deleted (Sync other tabs)
+        .listen(".post.deleted", (e) => {
+            handlePostDeletion(e);
         })
         .listen(".post.like.updated", (e) => {
             // <--- UPDATED NAME
@@ -104,6 +117,10 @@ onMounted(() => {
                             );
                         }
                     }
+                })
+                // C. Post Deleted (If a shared post is deleted by owner)
+                .listen(".post.deleted", (e) => {
+                    handlePostDeletion(e); // <--- REMOVE FROM FEED
                 })
                 .listen(".post.like.updated", (e) => {
                     // <--- UPDATED NAME
@@ -191,19 +208,33 @@ const addComment = (object) => {
     );
 };
 
+
 const deleteFunc = (object) => {
-    let url = "";
-    if (object.deleteType === "Post") {
-        url = "/posts/" + object.id;
-    } else {
-        url = "/comments/" + object.id;
-    }
+    // 1. Capture the values into simple variables immediately
+    // This "saves" them so they aren't lost when the 'object' is deleted
+    const id = object.id;
+    const type = object.deleteType;
+    const postReference = object.post; // If it's a comment, save its parent post info
+
+    let url = type === "Post" ? `/posts/${id}` : `/comments/${id}`;
 
     router.delete(url, {
-        onFinish: () => updatedPost(object),
+        // 2. Pass a "clean" reconstruction to updatedPost
+        // This avoids the 'undefined' error because we aren't relying on the original reactive object
+        onFinish: () => {
+            if (type === "Comment") {
+                // If you're deleting a comment, you likely need to
+                // refresh the parent post's comment count
+                updatedPost({ id: id, deleteType: type, post: postReference });
+            } else {
+                // If the post itself is deleted, updatedPost might
+                // not even be necessary anymore, but if it is:
+                updatedPost({ id: id, deleteType: type });
+            }
+        },
     });
 
-    if (object.deleteType === "Post") {
+    if (type === "Post") {
         openOverlay.value = false;
     }
 };
@@ -240,11 +271,21 @@ const updateLike = (object) => {
     }
 };
 
+
 const updatedPost = (object) => {
+    // 1. Safety Guard: If there's no object, or no parent post (like when deleting a Post), stop.
+    if (!object || !object.post) {
+        return;
+    }
+
+    // 2. Loop through the fresh data from Inertia
     for (let i = 0; i < posts.value.data.length; i++) {
         const post = posts.value.data[i];
+
+        // 3. Safe comparison using the captured parent post ID
         if (post.id === object.post.id) {
             currentPost.value = post;
+            break; // Stop looping once found
         }
     }
 };

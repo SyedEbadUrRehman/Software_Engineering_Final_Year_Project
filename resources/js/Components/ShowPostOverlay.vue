@@ -17,6 +17,7 @@ const user = usePage().props.auth.user
 
 const props = defineProps(['post'])
 const { post } = toRefs(props)
+const textarea=ref(null);
 
 defineEmits(['closeOverlay', 'addComment', 'updateLike','updateSave', 'deleteSelected','updateShare'])
 
