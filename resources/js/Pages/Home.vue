@@ -45,6 +45,19 @@ const handleReactionUpdate = (eventData) => {
     }
 };
 
+// --- HELPER FUNCTION: Update Comments ---
+const handleCommentUpdate = (eventData) => {
+    // Find the post in our feed
+    const post = posts.value.data.find((p) => p.id === eventData.id);
+
+    if (post) {
+        console.log(`Updating comments for Post #${eventData.id}`);
+        // Swap the comments array with the new real-time data
+        post.comments = eventData.comments;
+    }
+};
+
+
 onMounted(() => {
     // 1. MY USER CHANNEL
     window.Echo.private(`App.Models.User.${user.id}`)
@@ -54,6 +67,10 @@ onMounted(() => {
         .listen(".post.like.updated", (e) => {
             // <--- UPDATED NAME
             handleReactionUpdate(e);
+        })
+        // NEW: Listen for comments on my posts
+        .listen(".post.comment.updated", (e) => {
+            handleCommentUpdate(e);
         });
 
     // 2. Listen for "Post Shared" in my Circles
@@ -91,6 +108,10 @@ onMounted(() => {
                 .listen(".post.like.updated", (e) => {
                     // <--- UPDATED NAME
                     handleReactionUpdate(e);
+                })
+                // NEW: Listen for comments on shared posts
+                .listen(".post.comment.updated", (e) => {
+                    handleCommentUpdate(e);
                 })
                 .error((error) => {
                     console.error("Channel Error:", error);

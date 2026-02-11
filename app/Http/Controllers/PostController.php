@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
-use App\Events\PostCreated;
 use Illuminate\Http\Request;
 use App\Services\FileService;
 
@@ -24,8 +23,7 @@ class PostController extends Controller
         $post->user_id = auth()->user()->id;
         $post->text = $request->input('text');
         $post->save();
-        // Broadcast the post creation event
-        broadcast(new PostCreated($post));
+   
     }
 
     /**
