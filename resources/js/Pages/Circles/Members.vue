@@ -102,7 +102,7 @@ const addMember = (userId) => {
             </div>
 
             <div
-                class="bg-white border border-gray-200 rounded-3xl p-6 mb-6 shadow-sm"
+                class="bg-white border border-gray-200 rounded-3xl p-6 mb-6 shadow-sm md:w-1/2"
             >
                 <label
                     class="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2 block"

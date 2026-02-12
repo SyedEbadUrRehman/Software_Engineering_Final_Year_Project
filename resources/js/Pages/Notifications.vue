@@ -13,9 +13,9 @@ const props = defineProps({
     <Head title="Notifications" />
 
     <MainLayout>
-        <div class="w-full max-w-[600px] mx-auto h-full min-h-screen pt-4">
+        <div class="max-w-[1000px] lg:min-w-[calc(60%-300px)] md:min-w-[calc(90%-100px)] min-w-full absolute xl:left-[300px] md:left-[100px] left-0 mx-auto h-full min-h-screen pt-4">
             <div class="px-4 mb-6 border-b border-gray-200 pb-4">
-                <div class="text-2xl font-extrabold">Notifications</div>
+                <div class="text-3xl font-extrabold">Notifications</div>
             </div>
 
             <div v-if="newNotifications.length > 0">
