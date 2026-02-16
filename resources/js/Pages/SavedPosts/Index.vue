@@ -200,10 +200,10 @@ const toggleSave = (post) => {
 
     <MainLayout>
         <div
-            class="absolute xl:left-[330px] top-0 md:left-[100px] left-0 md:w-[600px] w-full p-0"
+            class="md:min-w-[600px] mx-auto lg:pl-0 md:pl-[80px] pl-0 relative"
         >
             <div
-                class="text-center sm:text-left fixed bg-white flex items-stretch flex-col w-full pt-16 pb-3"
+                class="text-center sticky md:top-0 top-[61px] sm:text-left bg-white flex items-stretch flex-col py-3"
             >
                 <h1 class="text-4xl font-black tracking-tighter text-gray-900">
                     Saved
@@ -212,7 +212,7 @@ const toggleSave = (post) => {
                     Saves content privately for see later.
                 </p>
             </div>
-            <div class="mt-36">
+            <div class="">
                 <div
                     id="Posts"
                     class="px-4 md:max-w-[600px] w-full mx-auto mt-10"

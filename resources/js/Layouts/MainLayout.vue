@@ -184,7 +184,7 @@ onMounted(() => {
             </div>
 
             <div
-                v-if="$page.url === '/'"
+                v-if="!$page.url.includes('/circles') && !$page.url.includes('/users') "
                 id="SuggestionsSection"
                 class="lg:w-4/12 lg:block hidden text-black mt-10"
             >

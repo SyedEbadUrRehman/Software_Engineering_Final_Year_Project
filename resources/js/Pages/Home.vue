@@ -374,10 +374,11 @@ const toggleSave = (post) => {
             </Carousel>
 
             <div
-                id="Posts"
+                
                 class="px-4 max-w-[600px] mx-auto mt-10"
                 v-for="post in posts.data"
                 :key="post"
+                :id="post.id"
             >
                 <div class="flex items-center justify-between py-2">
                     <div class="flex items-center">

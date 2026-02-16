@@ -219,10 +219,10 @@ const toggleSave = (post) => {
 
     <MainLayout>
         <div
-            class="absolute xl:left-[300px] top-0 md:left-[100px] left-0 md:w-[720px] w-full p-0"
+            class="md:min-w-[600px] w-full mx-auto lg:pl-0 md:pl-[80px] pl-0 relative"
         >
             <div
-                class="lg:w-[calc(100%-400px)] md:w-[calc(100%-200px)] w-full text-center sm:text-left fixed bg-white flex gap-5 flex-col md:pt-10 pt-16 md:pb-3"
+                class="sticky md:top-0 top-[60px]  w-full text-left bg-white flex gap-5 flex-col md:pt-10 pt-4"
             >
                 <h1
                     class="md:text-4xl text-3xl font-black tracking-tighter text-gray-900"
@@ -234,17 +234,17 @@ const toggleSave = (post) => {
                 <input
                     v-model="search"
                     type="text"
-                    placeholder="Search posts by text, user name or email..."
-                    class="border rounded-lg p-3 mb-6 md:mx-0 mx-2"
+                    placeholder="Search posts by text, name or email..."
+                    class="border rounded-lg p-3  mb-6 mx-0  "
                 />
 
                 <!-- Results -->
             </div>
 
-            <div class="mt-48">
+            <div class="w-full">
                 <div
                     v-if="posts.data.length === 0"
-                    class="flex flex-col items-center justify-center mt-20 px-4 text-center"
+                    class="flex flex-col items-center justify-center px-3 text-center"
                 >
                     <div class="bg-gray-100 p-6 rounded-full mb-4">
                         <svg
@@ -282,7 +282,7 @@ const toggleSave = (post) => {
                 </div>
                 <div
                     id="Posts"
-                    class="px-4 md:max-w-[600px] w-full mx-auto mt-10"
+                    class=" md:max-w-[600px] w-full mx-auto mt-10"
                     v-for="post in posts.data"
                     :key="post"
                 >
