@@ -35,7 +35,8 @@ class PostReminderMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.post_reminder',
+            // CHANGE THIS LINE: from 'view:' to 'markdown:'
+            markdown: 'emails.post_reminder', 
             with: [
                 'post' => $this->post,
             ]

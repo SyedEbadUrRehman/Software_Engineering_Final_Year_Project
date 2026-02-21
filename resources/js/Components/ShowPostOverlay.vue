@@ -1,6 +1,6 @@
 <script setup>
 import { ref, toRefs } from "vue";
-import { usePage } from "@inertiajs/vue3";
+import { router, usePage } from "@inertiajs/vue3";
 
 import ShowPostOptionsOverlay from "@/Components/ShowPostOptionsOverlay.vue";
 import LikesSection from "@/Components/LikesSection.vue";
