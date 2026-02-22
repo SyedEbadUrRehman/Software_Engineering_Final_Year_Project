@@ -349,6 +349,11 @@ const toggleReminder = (postId) => {
     reminderDate.value = existingReminder ? existingReminder.due_at : "";
 };
 
+const hasReminder = (post) => {
+    return (post.reminders || []).some(r => r.user_id === user.id);
+};
+
+// 1. SET (Create)
 const submitReminder = (postId) => {
     if (!reminderDate.value) return;
 
@@ -364,7 +369,40 @@ const submitReminder = (postId) => {
                 openReminderId.value = null;
                 reminderDate.value = "";
             },
+        }
+    );
+};
+
+// 2. UPDATE
+const updateReminder = (postId) => {
+    if (!reminderDate.value) return;
+
+    router.put(
+        `/post-reminders/${postId}`,
+        {
+            due_at: reminderDate.value,
         },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                openReminderId.value = null;
+                reminderDate.value = "";
+            },
+        }
+    );
+};
+
+// 3. DELETE
+const deleteReminder = (postId) => {
+    router.delete(
+        `/post-reminders/${postId}`,
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                openReminderId.value = null;
+                reminderDate.value = "";
+            },
+        }
     );
 };
 </script>
@@ -595,7 +633,7 @@ const submitReminder = (postId) => {
                                 class="flex-1 border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                             />
                             <div
-                                v-if="!reminderDate"
+                                v-if="!hasReminder(post)"
                                 class="flex gap-3 items-center justify-end"
                             >
                                 <button
@@ -610,13 +648,13 @@ const submitReminder = (postId) => {
                                 class="flex gap-3 items-center justify-end"
                             >
                                 <button
-                                    @click="submitReminder(post.id)"
+                                    @click="deleteReminder(post.id)"
                                     class="bg-red-500 hover:bg-red-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
                                 >
                                     Delete
                                 </button>
                                 <button
-                                    @click="submitReminder(post.id)"
+                                    @click="updateReminder(post.id)"
                                     class="bg-blue-500 hover:bg-blue-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
                                 >
                                     Update

@@ -8,8 +8,9 @@ import CommentOutline from "vue-material-design-icons/CommentOutline.vue";
 import BookmarkOutline from "vue-material-design-icons/BookmarkOutline.vue";
 import ShareOutline from "vue-material-design-icons/ShareOutline.vue";
 import Bookmark from "vue-material-design-icons/Bookmark.vue";
-import ClockTimeFive from "vue-material-design-icons/ClockTimeFive.vue";
-import ClockTimeFiveOutline from "vue-material-design-icons/ClockTimeFiveOutline.vue";
+import TimerPlusOutline from "vue-material-design-icons/TimerPlusOutline.vue";
+import ClipboardTextClockOutline from "vue-material-design-icons/ClipboardTextClockOutline.vue";
+import TimerCheckOutline from "vue-material-design-icons/TimerCheckOutline.vue";
 
 const props = defineProps(["post"]);
 const { post } = toRefs(props);
@@ -62,19 +63,29 @@ const userReminder = computed(() => {
                 class="pl-3 pt-[5px] cursor-pointer"
                 :size="33"
             />
-            <button
+          <button
                 @click="$emit('openReminder', post.id)"
                 class="pl-3 pt-[5px] cursor-pointer"
             >
-                <ClockTimeFive
-                    v-if="userReminder"
+                <TimerCheckOutline
+                    v-if="userReminder && userReminder.sent_at"
+                    :size="27"
+                    class="cursor-pointer text-green-600"
+                    title="Reminder Sent"
+                />
+
+                <ClipboardTextClockOutline
+                    v-else-if="userReminder && !userReminder.sent_at"
                     :size="27"
                     class="cursor-pointer text-blue-600"
+                    title="Reminder Set"
                 />
-                <ClockTimeFiveOutline
+
+                <TimerPlusOutline
                     v-else
                     :size="27"
                     class="cursor-pointer hover:text-blue-500"
+                    title="Add Reminder"
                 />
             </button>
         </div>

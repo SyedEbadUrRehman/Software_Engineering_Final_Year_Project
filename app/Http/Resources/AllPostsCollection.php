@@ -77,6 +77,7 @@ class AllPostsCollection extends ResourceCollection
                         'user_id' => $reminder->user_id,
                         // Format specifically for the <input type="date"> field
                         'due_at'  => Carbon::parse($reminder->due_at)->format('Y-m-d'), 
+                        'sent_at' => $reminder->sent_at,
                     ];
                 }),
 
