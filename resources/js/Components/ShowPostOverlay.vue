@@ -50,6 +50,7 @@ defineEmits([
     "updateSave",
     "deleteSelected",
     "updateShare",
+    "openReminder",
 ]);
 
 const textareaInput = (e) => {
@@ -170,17 +171,17 @@ const textareaInput = (e) => {
 
                         <div class="pb-16 md:hidden"></div>
                     </div>
-                
-                        <LikesSection
-                            v-if="post"
-                            class="px-2 border-t mb-2"
-                            :post="post"
-                            @like="$emit('updateLike', $event)"
-                            @saved="$emit('updateSave', $event)"
-                            @share="$emit('updateShare', $event)"
-                        />
-                   
-                 
+
+                    <LikesSection
+                        v-if="post"
+                        class="px-2 border-t mb-2"
+                        :post="post"
+                        @like="$emit('updateLike', $event)"
+                        @saved="$emit('updateSave', $event)"
+                        @share="$emit('updateShare', $event)"
+                        @reminder="$emit('openReminder', $event)"
+                    />
+
                     <div
                         class="absolute flex border bottom-0 w-full max-h-[200px] bg-white overflow-auto"
                     >

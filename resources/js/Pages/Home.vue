@@ -258,6 +258,7 @@ const updateLike = (object) => {
     if (deleteLike) {
         router.delete("/likes/" + id, {
             onFinish: () => updatedPost(object),
+             preserveScroll: true,
         });
     } else {
         router.post(
@@ -267,6 +268,7 @@ const updateLike = (object) => {
             },
             {
                 onFinish: () => updatedPost(object),
+                 preserveScroll: true,
             },
         );
     }
@@ -505,7 +507,7 @@ const deleteReminder = (postId) => {
                     @share="toggleShare"
                     @comment="openOverlayToggler(post)"
                     @saved="toggleSave"
-                    @openReminder="toggleReminder($event)"
+                    @reminder="toggleReminder($event)"
                 />
 
                 <div class="text-black font-extrabold py-1">
@@ -681,6 +683,7 @@ const deleteReminder = (postId) => {
             openOverlay = false;
         "
         @closeOverlay="openOverlay = false"
+        @openReminder="toggleReminder($event); openOverlay = false;"
     />
 
     <div

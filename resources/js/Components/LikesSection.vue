@@ -15,7 +15,7 @@ import TimerCheckOutline from "vue-material-design-icons/TimerCheckOutline.vue";
 const props = defineProps(["post"]);
 const { post } = toRefs(props);
 
-const emit = defineEmits(["like", "share", "comment", "saved", "openReminder"]);
+const emit = defineEmits(["like", "share", "comment", "saved", "reminder"]);
 
 const user = usePage().props.auth.user;
 
@@ -63,8 +63,8 @@ const userReminder = computed(() => {
                 class="pl-3 pt-[5px] cursor-pointer"
                 :size="33"
             />
-          <button
-                @click="$emit('openReminder', post.id)"
+            <button
+                @click="$emit('reminder', post.id)"
                 class="pl-3 pt-[5px] cursor-pointer"
             >
                 <TimerCheckOutline
