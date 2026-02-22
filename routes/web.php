@@ -89,6 +89,8 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/post-reminders', [PostReminderController::class, 'store'])->name('post-reminders.store');
+    Route::put('/post-reminders/{postId}', [PostReminderController::class, 'update'])->name('post-reminders.update');
+    Route::delete('/post-reminders/{postId}', [PostReminderController::class, 'destroy'])->name('post-reminders.destroy');
 });
 
 

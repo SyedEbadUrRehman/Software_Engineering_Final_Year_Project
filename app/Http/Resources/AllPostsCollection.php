@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
@@ -68,6 +69,14 @@ class AllPostsCollection extends ResourceCollection
                     return [
                         'id'      => $save->id,
                         'user_id' => $save->user_id,
+                    ];
+                }),
+                'reminders' => $post->reminders->map(function ($reminder) {
+                    return [
+                        'id'      => $reminder->id,
+                        'user_id' => $reminder->user_id,
+                        // Format specifically for the <input type="date"> field
+                        'due_at'  => Carbon::parse($reminder->due_at)->format('Y-m-d'), 
                     ];
                 }),
 

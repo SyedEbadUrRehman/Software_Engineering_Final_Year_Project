@@ -39,6 +39,7 @@ class HomeController extends Controller
                 'likes',
                 'sharedCircles',
                 'saves', 
+                'reminders',
             ])
             ->latest()
             ->get();

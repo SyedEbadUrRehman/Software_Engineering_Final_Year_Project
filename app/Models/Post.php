@@ -38,5 +38,8 @@ class Post extends Model
     {
         return $this->hasMany(PostCircleShare::class);
     }
-
+    public function reminders()
+    {
+        return $this->hasMany(PostReminder::class);
+    }
 }

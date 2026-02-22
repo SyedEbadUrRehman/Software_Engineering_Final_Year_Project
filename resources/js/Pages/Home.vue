@@ -21,6 +21,8 @@ let deletePosId = ref(null);
 const circles = ref([]); // all circles
 const searchQuery = ref(""); // Tracks the text in the search box
 const openShareId = ref(null); // Tracks which post ID has the share div open
+const openReminderId = ref(null); // Tracks which post ID has the reminder div open
+const reminderDate = ref("");
 
 const user = usePage().props.auth.user;
 const props = defineProps({
@@ -208,7 +210,6 @@ const addComment = (object) => {
     );
 };
 
-
 const deleteFunc = (object) => {
     // 1. Capture the values into simple variables immediately
     // This "saves" them so they aren't lost when the 'object' is deleted
@@ -271,7 +272,6 @@ const updateLike = (object) => {
     }
 };
 
-
 const updatedPost = (object) => {
     // 1. Safety Guard: If there's no object, or no parent post (like when deleting a Post), stop.
     if (!object || !object.post) {
@@ -328,6 +328,45 @@ const toggleSave = (post) => {
         );
     }
 };
+// --- NEW REMINDER FUNCTIONS ---
+
+const toggleReminder = (postId) => {
+    // If it's already open, close it
+    if (openReminderId.value === postId) {
+        openReminderId.value = null;
+        return;
+    }
+
+    // Open this post's reminder box
+    openReminderId.value = postId;
+    openShareId.value = null; // Optional: close share box if it's open so they don't overlap
+
+    // Pre-fill the date if the user already has a reminder set
+    const post = posts.value.data.find((p) => p.id === postId);
+    const existingReminder = (post.reminders || []).find(
+        (r) => r.user_id === user.id,
+    );
+    reminderDate.value = existingReminder ? existingReminder.due_at : "";
+};
+
+const submitReminder = (postId) => {
+    if (!reminderDate.value) return;
+
+    router.post(
+        "/post-reminders",
+        {
+            post_id: postId,
+            due_at: reminderDate.value,
+        },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                openReminderId.value = null;
+                reminderDate.value = "";
+            },
+        },
+    );
+};
 </script>
 
 <template>
@@ -374,7 +413,6 @@ const toggleSave = (post) => {
             </Carousel>
 
             <div
-                
                 class="px-4 max-w-[600px] mx-auto mt-10"
                 v-for="post in posts.data"
                 :key="post"
@@ -429,6 +467,7 @@ const toggleSave = (post) => {
                     @share="toggleShare"
                     @comment="openOverlayToggler(post)"
                     @saved="toggleSave"
+                    @openReminder="toggleReminder($event)"
                 />
 
                 <div class="text-black font-extrabold py-1">
@@ -525,6 +564,62 @@ const toggleSave = (post) => {
                                     <span class="text-[20px] leading-none"
                                         >×</span
                                     >
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    v-if="openReminderId === post.id"
+                    class="px-4 pb-4 border-t border-gray-100 pt-3 transition-all duration-300"
+                >
+                    <div
+                        class="bg-gray-50 p-3 rounded-lg border border-gray-200"
+                    >
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs font-bold mb-2 text-gray-700">
+                                Set Due Date
+                                <span class="text-gray-400 font-normal"
+                                    >(Reminder sent 12h before)</span
+                                >
+                            </div>
+                            <Close
+                                @click="toggleReminder(post.id)"
+                                class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-2"
+                            />
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            <input
+                                type="date"
+                                v-model="reminderDate"
+                                class="flex-1 border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <div
+                                v-if="!reminderDate"
+                                class="flex gap-3 items-center justify-end"
+                            >
+                                <button
+                                    @click="submitReminder(post.id)"
+                                    class="bg-blue-500 hover:bg-blue-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                >
+                                    Set
+                                </button>
+                            </div>
+                            <div
+                                v-else
+                                class="flex gap-3 items-center justify-end"
+                            >
+                                <button
+                                    @click="submitReminder(post.id)"
+                                    class="bg-red-500 hover:bg-red-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                >
+                                    Delete
+                                </button>
+                                <button
+                                    @click="submitReminder(post.id)"
+                                    class="bg-blue-500 hover:bg-blue-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                >
+                                    Update
                                 </button>
                             </div>
                         </div>

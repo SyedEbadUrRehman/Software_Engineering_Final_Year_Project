@@ -170,7 +170,7 @@ const textareaInput = (e) => {
 
                         <div class="pb-16 md:hidden"></div>
                     </div>
-                    <div class="flex">
+                
                         <LikesSection
                             v-if="post"
                             class="px-2 border-t mb-2"
@@ -179,43 +179,8 @@ const textareaInput = (e) => {
                             @saved="$emit('updateSave', $event)"
                             @share="$emit('updateShare', $event)"
                         />
-                        <div
-                            class="flex items-center justify-between p-3 border-b"
-                        >
-                            <div class="flex items-center gap-2">
-                                <button
-                                    @click="showDatePicker = !showDatePicker"
-                                >
-                                    <ClockTimeFiveOutline
-                                        :size="27"
-                                        class="cursor-pointer hover:text-blue-500"
-                                    />
-                                </button>
-
-                                <!-- <button v-if="user.id === post.user.id" ... > ... </button> -->
-                            </div>
-                        </div>
-                    </div>
-                    <div
-                        v-if="showDatePicker"
-                        class="p-3 bg-gray-100 rounded-lg mb-2"
-                    >
-                        <div class="text-xs font-bold mb-2">
-                            Set Due Date (Reminder sent 12h before)
-                        </div>
-                        <input
-                            type="datetime-local"
-                            v-model="reminderDate"
-                            class="w-full border-gray-300 rounded-md text-sm mb-2"
-                        />
-                        <button
-                            @click="setReminder"
-                            class="bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full w-full"
-                        >
-                            Set Reminder
-                        </button>
-                    </div>
-
+                   
+                 
                     <div
                         class="absolute flex border bottom-0 w-full max-h-[200px] bg-white overflow-auto"
                     >
