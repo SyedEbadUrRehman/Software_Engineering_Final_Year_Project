@@ -67,6 +67,23 @@ const handlePostDeletion = (eventData) => {
     openOverlay.value = false;
 };
 
+// --- HELPER FUNCTION: Update Reminder Status ---
+const handleReminderSent = (eventData) => {
+    // Find the post in our feed
+    const post = posts.value.data.find((p) => p.id === eventData.post_id);
+
+    if (post) {
+        // Find the specific reminder for the current user
+        const reminder = (post.reminders || []).find((r) => r.user_id === user.id);
+        
+        if (reminder) {
+            // Updating this value will automatically trigger the UI change
+            // to show the TimerCheckOutline (sent/due) icon!
+            reminder.sent_at = eventData.sent_at;
+        }
+    }
+};
+
 onMounted(() => {
     // 1. MY USER CHANNEL
     window.Echo.private(`App.Models.User.${user.id}`)
@@ -82,6 +99,9 @@ onMounted(() => {
         .listen(".post.like.updated", (e) => {
             // <--- UPDATED NAME
             handleReactionUpdate(e);
+        })
+        .listen(".reminder.sent", (e) => {
+            handleReminderSent(e);
         })
         // NEW: Listen for comments on my posts
         .listen(".post.comment.updated", (e) => {

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Events\ReminderSent;
 use App\Mail\PostReminderMail;
 use App\Models\PostReminder;
 use Illuminate\Bus\Queueable;
@@ -27,6 +28,10 @@ public $reminder;
         Mail::to($this->reminder->user->email)->send(new PostReminderMail($this->reminder->post));
 
         // 2. Mark as Sent in DB
-        $this->reminder->update(['sent_at' => now()]);
+        $now = now();
+        $this->reminder->update(['sent_at' => $now]);
+
+        // 3. --- REAL TIME UI UPDATE ---
+        broadcast(new ReminderSent($this->reminder->post_id, $this->reminder->user_id, $now));
     }
 }
