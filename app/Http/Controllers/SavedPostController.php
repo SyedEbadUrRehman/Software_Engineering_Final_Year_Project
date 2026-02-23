@@ -1,14 +1,13 @@
 <?php
-
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Resources\AllPostsCollection;
 use App\Models\Post;
-use Inertia\Inertia;
 use App\Models\SavedPost;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Resources\AllPostsCollection;
+use Inertia\Inertia;
 
 class SavedPostController extends Controller
 {
@@ -18,23 +17,27 @@ class SavedPostController extends Controller
     public function index()
     {
         //
-          $userId = Auth::id();
+        $userId    = Auth::id();
+        $circleIds = Auth::user()
+            ->circleMemberships()
+            ->pluck('circle_id');
 
         // ✅ Get posts saved by logged-in user
         $posts = Post::whereHas('saves', function ($query) use ($userId) {
             $query->where('user_id', $userId);
         })
-        ->with([
-            'user',
-            'comments.user',
-            'likes',
-            'saves',
-        ])
-        ->latest()
-        ->get();
+            ->with([
+                'user',
+                'comments.user',
+                'likes',
+                'saves',
+            ])
+            ->latest()
+            ->get();
 
         return Inertia::render("SavedPosts/Index", [
             "posts" => new AllPostsCollection($posts),
+             'myCircleIds' => $circleIds
         ]);
     }
 
@@ -90,7 +93,7 @@ class SavedPostController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-   public function destroy(SavedPost $savedPost)
+    public function destroy(SavedPost $savedPost)
     {
         if ($savedPost->user_id !== Auth::id()) {
             abort(403);

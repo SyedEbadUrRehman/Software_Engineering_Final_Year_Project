@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, toRefs, computed } from "vue";
+import { ref, onMounted, toRefs, computed, onUnmounted } from "vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import MainLayout from "@/Layouts/MainLayout.vue";
 
@@ -18,9 +18,11 @@ let deletePosId = ref(null);
 const circles = ref([]); // all circles
 const searchQuery = ref(""); // Tracks the text in the search box
 const openShareId = ref(null); // Tracks which post ID has the share div open
+const openReminderId = ref(null); // Tracks which post ID has the reminder div open
+const reminderDate = ref("");
 
 const user = usePage().props.auth.user;
-const props = defineProps({ posts: Object, allUsers: Object });
+const props = defineProps({ posts: Object, allUsers: Object , myCircleIds: Array});
 const { posts, allUsers } = toRefs(props);
 
 const toggleShare = async (postId) => {
@@ -69,10 +71,144 @@ const unsharePost = (shareId) => {
     });
 };
 
+
+// real time event listener by echo
+
+// --- HELPER FUNCTION ---
+// This finds the post in the list and updates just its likes
+const handleReactionUpdate = (eventData) => {
+    // Find the post in our current feed
+    const post = posts.value.data.find((p) => p.id === eventData.id);
+
+    if (post) {
+        // console.log(`Updating likes for Post #${eventData.id}`);
+        // Swap the old likes array with the new one from the server
+        post.likes = eventData.likes;
+    }
+};
+
+// --- HELPER FUNCTION: Update Comments ---
+const handleCommentUpdate = (eventData) => {
+    // Find the post in our feed
+    const post = posts.value.data.find((p) => p.id === eventData.id);
+
+    if (post) {
+        // console.log(`Updating comments for Post #${eventData.id}`);
+        // Swap the comments array with the new real-time data
+        post.comments = eventData.comments;
+    }
+};
+
+// --- HELPER FUNCTION: Remove Post ---
+const handlePostDeletion = (eventData) => {
+    // console.log(`Removing Post #${eventData.id}`);
+    posts.value.data = posts.value.data.filter((p) => p.id !== eventData.id);
+    currentPost.value = null;
+    openOverlay.value = false;
+};
+
+// --- HELPER FUNCTION: Update Reminder Status ---
+const handleReminderSent = (eventData) => {
+    // Find the post in our feed
+    const post = posts.value.data.find((p) => p.id === eventData.post_id);
+
+    if (post) {
+        // Find the specific reminder for the current user
+        const reminder = (post.reminders || []).find((r) => r.user_id === user.id);
+        
+        if (reminder) {
+            // Updating this value will automatically trigger the UI change
+            // to show the TimerCheckOutline (sent/due) icon!
+            reminder.sent_at = eventData.sent_at;
+        }
+    }
+};
+
+
 onMounted(() => {
     window.addEventListener("resize", () => {
         wWidth.value = window.innerWidth;
     });
+
+  // 1. MY USER CHANNEL
+    window.Echo.private(`App.Models.User.${user.id}`)
+        // A. Post Created (Sync other tabs)
+        .listen(".post.created", (e) => {
+            // console.log("My new post (other tab):", e);
+            posts.value.data.unshift(e);
+        })
+        // B. Post Deleted (Sync other tabs)
+        .listen(".post.deleted", (e) => {
+            handlePostDeletion(e);
+        })
+        .listen(".post.like.updated", (e) => {
+            // <--- UPDATED NAME
+            handleReactionUpdate(e);
+        })
+        .listen(".reminder.sent", (e) => {
+            handleReminderSent(e);
+        })
+        // NEW: Listen for comments on my posts
+        .listen(".post.comment.updated", (e) => {
+            handleCommentUpdate(e);
+        });
+
+    // 2. Listen for "Post Shared" in my Circles
+    if (props.myCircleIds && props.myCircleIds.length) {
+        props.myCircleIds.forEach((circleId) => {
+            window.Echo.private(`circle.${circleId}`)
+                .listen(".post.shared", (e) => {
+                    // 'e' is now the clean object from AllPostsCollection
+                    // console.log(`Real-time post shared in Circle ${circleId}:`, e);
+
+                    // To add to feed dynamically:
+                    posts.value.data.unshift(e);
+                })
+                // B. Handle Unshared Post (Remove)
+                .listen(".post.unshared", (e) => {
+                    // console.log(`Unshared from Circle ${circleId}:`, e);
+
+                    // Logic: Remove post ONLY if I am NOT the owner.
+                    // (Owners should still see their own posts even if unshared)
+                    const postIndex = posts.value.data.findIndex(
+                        (post) => post.id === e.id,
+                    );
+
+                    if (postIndex !== -1) {
+                        const post = posts.value.data[postIndex];
+
+                        // If I am NOT the owner, remove it from my view
+                        if (post.user.id !== user.id) {
+                            posts.value.data = posts.value.data.filter(
+                                (p) => p.id !== e.id,
+                            );
+                        }
+                    }
+                })
+                // C. Post Deleted (If a shared post is deleted by owner)
+                .listen(".post.deleted", (e) => {
+                    handlePostDeletion(e); // <--- REMOVE FROM FEED
+                })
+                .listen(".post.like.updated", (e) => {
+                    // <--- UPDATED NAME
+                    handleReactionUpdate(e);
+                })
+                // NEW: Listen for comments on shared posts
+                .listen(".post.comment.updated", (e) => {
+                    handleCommentUpdate(e);
+                })
+                .error((error) => {
+                    console.error("Channel Error:", error);
+                });
+        });
+    }
+
+});
+
+onUnmounted(() => {
+    // Cleanup
+    window.Echo.leave(`App.Models.User.${user.id}`);
+    props.myCircleIds.forEach((id) => window.Echo.leave(`circle.${id}`));
 });
 
 const openOverlayToggler = (post) => {
@@ -193,6 +329,89 @@ const toggleSave = (post) => {
         );
     }
 };
+
+// --- NEW REMINDER FUNCTIONS ---
+
+const toggleReminder = (postId) => {
+    // If it's already open, close it
+    if (openReminderId.value === postId) {
+        openReminderId.value = null;
+        return;
+    }
+
+    // Open this post's reminder box
+    openReminderId.value = postId;
+    openShareId.value = null; // Optional: close share box if it's open so they don't overlap
+
+    // Pre-fill the date if the user already has a reminder set
+    const post = posts.value.data.find((p) => p.id === postId);
+    const existingReminder = (post.reminders || []).find(
+        (r) => r.user_id === user.id,
+    );
+    reminderDate.value = existingReminder ? existingReminder.due_at : "";
+};
+
+const hasReminder = (post) => {
+    return (post.reminders || []).some(r => r.user_id === user.id);
+};
+
+// 1. SET (Create)
+const submitReminder = (postId) => {
+    if (!reminderDate.value) return;
+
+    router.post(
+        "/post-reminders",
+        {
+            post_id: postId,
+            due_at: reminderDate.value,
+        },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                openReminderId.value = null;
+                reminderDate.value = "";
+            },
+        }
+    );
+};
+
+// 2. UPDATE
+const updateReminder = (postId) => {
+    if (!reminderDate.value) return;
+
+    router.put(
+        `/post-reminders/${postId}`,
+        {
+            due_at: reminderDate.value,
+        },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                openReminderId.value = null;
+                reminderDate.value = "";
+            },
+        }
+    );
+};
+
+// 3. DELETE
+const deleteReminder = (postId) => {
+    router.delete(
+        `/post-reminders/${postId}`,
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                openReminderId.value = null;
+                reminderDate.value = "";
+            },
+        }
+    );
+};
+
+
+
+
+
 </script>
 
 <template>
@@ -268,6 +487,7 @@ const toggleSave = (post) => {
                         @share="toggleShare"
                         @comment="openOverlayToggler(post)"
                         @saved="toggleSave"
+                         @reminder="toggleReminder($event)"
                     />
 
                     <div class="text-black font-extrabold py-1">
@@ -366,6 +586,63 @@ const toggleSave = (post) => {
                             </div>
                         </div>
                     </div>
+                       <div
+                    v-if="openReminderId === post.id"
+                    class="px-4 pb-4 border-t border-gray-100 pt-3 transition-all duration-300"
+                >
+                    <div
+                        class="bg-gray-50 p-3 rounded-lg border border-gray-200"
+                    >
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs font-bold mb-2 text-gray-700">
+                                Set Due Date
+                                <span class="text-gray-400 font-normal"
+                                    >(Reminder sent 12h before)</span
+                                >
+                            </div>
+                            <Close
+                                @click="toggleReminder(post.id)"
+                                class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-2"
+                            />
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            <input
+                                type="date"
+                                v-model="reminderDate"
+                                class="flex-1 border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <div
+                                v-if="!hasReminder(post)"
+                                class="flex gap-3 items-center justify-end"
+                            >
+                                <button
+                                    @click="submitReminder(post.id)"
+                                    class="bg-blue-500 hover:bg-blue-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                >
+                                    Set
+                                </button>
+                            </div>
+                            <div
+                                v-else
+                                class="flex gap-3 items-center justify-end"
+                            >
+                                <button
+                                    @click="deleteReminder(post.id)"
+                                    class="bg-red-500 hover:bg-red-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                >
+                                    Delete
+                                </button>
+                                <button
+                                    @click="updateReminder(post.id)"
+                                    class="bg-blue-500 hover:bg-blue-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                >
+                                    Update
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 </div>
             </div>
             <div class="pb-20"></div>
@@ -384,6 +661,7 @@ const toggleSave = (post) => {
             openOverlay = false;
         "
         @closeOverlay="openOverlay = false"
+         @openReminder="toggleReminder($event); openOverlay = false;"
     />
 
     <div
