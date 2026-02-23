@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, toRefs, computed, watch } from "vue";
+import { ref, onMounted, toRefs, computed, watch, onUnmounted } from "vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import { debounce } from "lodash";
 import MainLayout from "@/Layouts/MainLayout.vue";
@@ -9,6 +9,7 @@ import ShowPostOverlay from "@/Components/ShowPostOverlay.vue";
 
 import DotsHorizontal from "vue-material-design-icons/DotsHorizontal.vue";
 import Close from "vue-material-design-icons/Close.vue";
+
 
 let wWidth = ref(window.innerWidth);
 let currentPost = ref(null);
@@ -22,7 +23,7 @@ const openReminderId = ref(null); // Tracks which post ID has the reminder div o
 const reminderDate = ref("");
 
 const user = usePage().props.auth.user;
-const props = defineProps({ posts: Object, searchQuery: String });
+const props = defineProps({ posts: Object, searchQuery: String , myCircleIds: Array});
 const { posts } = toRefs(props);
 
 // search feature
@@ -288,6 +289,141 @@ const deleteReminder = (postId) => {
         },
     });
 };
+
+// real time implementation 
+
+
+// --- HELPER FUNCTION ---
+// This finds the post in the list and updates just its likes
+const handleReactionUpdate = (eventData) => {
+    // Find the post in our current feed
+    const post = posts.value.data.find((p) => p.id === eventData.id);
+
+    if (post) {
+        // console.log(`Updating likes for Post #${eventData.id}`);
+        // Swap the old likes array with the new one from the server
+        post.likes = eventData.likes;
+    }
+};
+
+// --- HELPER FUNCTION: Update Comments ---
+const handleCommentUpdate = (eventData) => {
+    // Find the post in our feed
+    const post = posts.value.data.find((p) => p.id === eventData.id);
+
+    if (post) {
+        // console.log(`Updating comments for Post #${eventData.id}`);
+        // Swap the comments array with the new real-time data
+        post.comments = eventData.comments;
+    }
+};
+
+// --- HELPER FUNCTION: Remove Post ---
+const handlePostDeletion = (eventData) => {
+    // console.log(`Removing Post #${eventData.id}`);
+    posts.value.data = posts.value.data.filter((p) => p.id !== eventData.id);
+    currentPost.value = null;
+    openOverlay.value = false;
+};
+
+// --- HELPER FUNCTION: Update Reminder Status ---
+const handleReminderSent = (eventData) => {
+    // Find the post in our feed
+    const post = posts.value.data.find((p) => p.id === eventData.post_id);
+
+    if (post) {
+        // Find the specific reminder for the current user
+        const reminder = (post.reminders || []).find((r) => r.user_id === user.id);
+        
+        if (reminder) {
+            // Updating this value will automatically trigger the UI change
+            // to show the TimerCheckOutline (sent/due) icon!
+            reminder.sent_at = eventData.sent_at;
+        }
+    }
+};
+
+onMounted(() => {
+    // 1. MY USER CHANNEL
+    window.Echo.private(`App.Models.User.${user.id}`)
+        // A. Post Created (Sync other tabs)
+        .listen(".post.created", (e) => {
+            // console.log("My new post (other tab):", e);
+            posts.value.data.unshift(e);
+        })
+        // B. Post Deleted (Sync other tabs)
+        .listen(".post.deleted", (e) => {
+            handlePostDeletion(e);
+        })
+        .listen(".post.like.updated", (e) => {
+            // <--- UPDATED NAME
+            handleReactionUpdate(e);
+        })
+        .listen(".reminder.sent", (e) => {
+            handleReminderSent(e);
+        })
+        // NEW: Listen for comments on my posts
+        .listen(".post.comment.updated", (e) => {
+            handleCommentUpdate(e);
+        });
+
+    // 2. Listen for "Post Shared" in my Circles
+    if (props.myCircleIds && props.myCircleIds.length) {
+        props.myCircleIds.forEach((circleId) => {
+            window.Echo.private(`circle.${circleId}`)
+                .listen(".post.shared", (e) => {
+                    // 'e' is now the clean object from AllPostsCollection
+                    // console.log(`Real-time post shared in Circle ${circleId}:`, e);
+
+                    // To add to feed dynamically:
+                    posts.value.data.unshift(e);
+                })
+                // B. Handle Unshared Post (Remove)
+                .listen(".post.unshared", (e) => {
+                    // console.log(`Unshared from Circle ${circleId}:`, e);
+
+                    // Logic: Remove post ONLY if I am NOT the owner.
+                    // (Owners should still see their own posts even if unshared)
+                    const postIndex = posts.value.data.findIndex(
+                        (post) => post.id === e.id,
+                    );
+
+                    if (postIndex !== -1) {
+                        const post = posts.value.data[postIndex];
+
+                        // If I am NOT the owner, remove it from my view
+                        if (post.user.id !== user.id) {
+                            posts.value.data = posts.value.data.filter(
+                                (p) => p.id !== e.id,
+                            );
+                        }
+                    }
+                })
+                // C. Post Deleted (If a shared post is deleted by owner)
+                .listen(".post.deleted", (e) => {
+                    handlePostDeletion(e); // <--- REMOVE FROM FEED
+                })
+                .listen(".post.like.updated", (e) => {
+                    // <--- UPDATED NAME
+                    handleReactionUpdate(e);
+                })
+                // NEW: Listen for comments on shared posts
+                .listen(".post.comment.updated", (e) => {
+                    handleCommentUpdate(e);
+                })
+                .error((error) => {
+                    console.error("Channel Error:", error);
+                });
+        });
+    }
+});
+
+onUnmounted (() => {
+    // Cleanup
+    window.Echo.leave(`App.Models.User.${user.id}`);
+    props.myCircleIds.forEach((id) => window.Echo.leave(`circle.${id}`));
+});
+
 </script>
 
 <template>
