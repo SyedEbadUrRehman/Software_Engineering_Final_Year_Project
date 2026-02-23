@@ -56,6 +56,7 @@ const props = defineProps({
                             <span v-if="note.data.type === 'like'">❤️</span>
                             <span v-if="note.data.type === 'comment'">💬</span>
                             <span v-if="note.data.type === 'share'">📢</span>
+                            <span v-if="note.data.type === 'reminder'">⏰</span>
                         </div>
                     </Link>
                 </div>

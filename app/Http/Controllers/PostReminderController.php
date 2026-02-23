@@ -20,6 +20,7 @@ class PostReminderController extends Controller
         $dueAt = Carbon::parse($request->due_at);
         // Calculate reminder time: 12 hours before the due date
         $remindAt = $dueAt->copy()->subHours(12);
+        // $remindAt = $dueAt->copy()->addMinute();
 
         PostReminder::create([
             'user_id' => auth()->id(),
