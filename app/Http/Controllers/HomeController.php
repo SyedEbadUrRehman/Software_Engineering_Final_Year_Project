@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use App\Models\User;
 use Inertia\Inertia;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\AllPostsCollection;
@@ -39,6 +38,7 @@ class HomeController extends Controller
                 'likes',
                 'sharedCircles',
                 'saves', 
+                'reminders',
             ])
             ->latest()
             ->get();

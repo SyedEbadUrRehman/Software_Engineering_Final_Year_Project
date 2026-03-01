@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 
 class PostActivityNotification extends Notification implements ShouldQueue
@@ -39,6 +38,7 @@ class PostActivityNotification extends Notification implements ShouldQueue
             'share' => 'shared a post with you',
             'like' => 'liked your post',
             'comment' => 'commented on your post',
+            'reminder' => 'idea reminder that is now due in 12 hours',
             default => 'interacted with your post',
         };
     }
