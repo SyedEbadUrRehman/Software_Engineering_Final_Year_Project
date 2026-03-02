@@ -21,8 +21,8 @@ return new class extends Migration
                 ->onDelete('cascade');
 
             $table->text('text');
-            $table->string('file');
-
+            $table->string('file')->nullable();
+            $table->string('url');
             $table->timestamps();
         });
     }

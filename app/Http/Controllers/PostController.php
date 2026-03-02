@@ -16,13 +16,14 @@ class PostController extends Controller
     {
         $post = new Post;
         $request->validate([
-            'file' => 'required|mimes:jpg,jpeg,png',
+            'url' => 'required',
             'text' => 'required',
         ]);
-        $post = (new FileService)->updateFile($post, $request, 'post');
+        // $post = (new FileService)->updateFile($post, $request, 'post');
 
         $post->user_id = auth()->user()->id;
         $post->text    = $request->input('text');
+        $post->url    = $request->input('url');
         $post->save();
 
         // --- REAL TIME: POST CREATED ---
