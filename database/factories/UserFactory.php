@@ -24,7 +24,7 @@ class UserFactory extends Factory
              'name' => $this->faker->name(),
 
             // fake profile file/image
-            'file' => $this->faker->imageUrl(200, 200, 'people'),
+            'file' => "https://loremflickr.com/320/240?random=".mt_rand(1, 50),
 
             'email' => $this->faker->unique()->safeEmail(),
 
