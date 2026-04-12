@@ -50,6 +50,7 @@ class AllPostsCollection extends ResourceCollection
             return [
                 'id'                   => $post->id,
                 'text'                 => $post->text,
+                'url'                 => $post->url,
                 'file'                 => $post->file,
                 'created_at'           => $post->created_at->format(' M D Y'),
 

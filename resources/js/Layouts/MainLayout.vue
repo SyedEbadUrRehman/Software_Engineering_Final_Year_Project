@@ -39,6 +39,10 @@ onMounted(() => {
         // new Audio('/notification.mp3').play();
     });
 });
+
+function createNoteTogglerFun() {
+    window.parent.postMessage("request_tab_info", "*");
+}
 </script>
 
 <template>
@@ -131,20 +135,20 @@ onMounted(() => {
                 <!-- <Link href="/circles">
                     <MenuItem iconString="Notifications" class="mb-4" />
                 </Link> -->
-                
-                    <Link
-                        :href="route('notifications.index')"
-                        class="relative block"
+
+                <Link
+                    :href="route('notifications.index')"
+                    class="relative block"
+                >
+                    <MenuItem iconString="Notifications" class="mb-4" />
+                    <div
+                        v-if="unreadCount > 0"
+                        class="absolute top-2 left-[35px] bg-red-500 text-white text-[11px] font-bold px-1.5 rounded-full"
                     >
-                        <MenuItem iconString="Notifications" class="mb-4" />
-                        <div
-                            v-if="unreadCount > 0"
-                            class="absolute top-2 left-[35px] bg-red-500 text-white text-[11px] font-bold px-1.5 rounded-full"
-                        >
-                            {{ unreadCount }}
-                        </div>
-                    </Link>
-             
+                        {{ unreadCount }}
+                    </div>
+                </Link>
+
                 <MenuItem
                     @click="showCreatePost = true"
                     iconString="Create"
@@ -184,7 +188,10 @@ onMounted(() => {
             </div>
 
             <div
-                v-if="!$page.url.includes('/circles') && !$page.url.includes('/users') "
+                v-if="
+                    !$page.url.includes('/circles') &&
+                    !$page.url.includes('/users')
+                "
                 id="SuggestionsSection"
                 class="lg:w-4/12 lg:block hidden text-black mt-10"
             >
@@ -298,7 +305,10 @@ onMounted(() => {
                 />
             </Link>
             <Plus
-                @click="showCreatePost = true"
+                @click="
+                    showCreatePost = true;
+                    createNoteTogglerFun();
+                "
                 fillColor="#000000"
                 :size="33"
                 class="cursor-pointer"
@@ -318,3 +328,29 @@ onMounted(() => {
 
     <CreatePostOverlay v-if="showCreatePost" @close="showCreatePost = false" />
 </template>
+<style>
+:root {
+    font-size: 1vw;
+}
+body {
+    font-variation-settings: "wght" 500;
+}
+
+@media screen and (max-width: 900px) {
+    svg {
+        width:26px;
+        height:26px;
+    }
+    :root {
+        font-size: 93%;
+    }
+}@media screen and (max-width: 450px) {
+    svg {
+        width: 20px;
+        height: 20px;
+    }
+    :root {
+        font-size: 80%;
+    }
+}
+</style>

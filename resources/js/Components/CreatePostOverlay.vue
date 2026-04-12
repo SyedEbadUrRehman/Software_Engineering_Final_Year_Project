@@ -33,13 +33,13 @@ const toggleUrl = () => {
     isOpenUrl.value = !isOpenUrl.value;
 };
 
-const urlChange=()=>{
-    form.url=url.value.value
-}
-const clearUrl=()=>{
-  form.url=null
-  url.value.value=null  
-}
+const urlChange = () => {
+    form.url = url.value.value;
+};
+const clearUrl = () => {
+    form.url = null;
+    url.value.value = null;
+};
 const createPostFunc = () => {
     error.value.text = null;
     error.value.file = null;
@@ -89,6 +89,18 @@ const closeOverlay = () => {
     fileDisplay.value = "";
     emit("close");
 };
+
+window.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "tab_info") {
+        // document.getElementById('tab-info').innerText =
+        //   `Title: ${event.data.title}\nURL: ${event.data.url}`;
+        // document.querySelector("#siteTitle").value = event.data.title;
+        // document.querySelector("#siteUrl").value = event.data.url;
+        const input = document.getElementById("postUrl");
+        input.value = event.data.url;
+        input.dispatchEvent(new Event("change"));
+    }
+});
 </script>
 
 <template>
@@ -192,7 +204,7 @@ const closeOverlay = () => {
                                 class="flex items-center justify-between gap-3"
                             >
                                 <input
-                                id="postUrl"
+                                    id="postUrl"
                                     ref="url"
                                     type="text"
                                     placeholder="URL of the site"
@@ -203,7 +215,7 @@ const closeOverlay = () => {
                                     :size="27"
                                     class="p-2 hover:bg-slate-200 hover:text-red-400 rounded-full cursor-pointer"
                                     @click="clearUrl"
-                                    />
+                                />
                             </div>
                             <div
                                 v-if="error && error.url"
@@ -239,8 +251,6 @@ const closeOverlay = () => {
         </div>
     </div>
 </template>
-
-
 
 <!-- const input = document.getElementById("postUrl");
 input.value = "hi";

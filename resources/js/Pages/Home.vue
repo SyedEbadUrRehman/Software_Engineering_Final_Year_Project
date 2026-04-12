@@ -11,6 +11,7 @@ import { Carousel, Slide, Navigation } from "vue3-carousel";
 
 import DotsHorizontal from "vue-material-design-icons/DotsHorizontal.vue";
 import Close from "vue-material-design-icons/Close.vue";
+import ArrowRight from "vue-material-design-icons/ArrowRight.vue";
 
 let wWidth = ref(window.innerWidth);
 let currentSlide = ref(0);
@@ -74,8 +75,10 @@ const handleReminderSent = (eventData) => {
 
     if (post) {
         // Find the specific reminder for the current user
-        const reminder = (post.reminders || []).find((r) => r.user_id === user.id);
-        
+        const reminder = (post.reminders || []).find(
+            (r) => r.user_id === user.id,
+        );
+
         if (reminder) {
             // Updating this value will automatically trigger the UI change
             // to show the TimerCheckOutline (sent/due) icon!
@@ -278,7 +281,7 @@ const updateLike = (object) => {
     if (deleteLike) {
         router.delete("/likes/" + id, {
             onFinish: () => updatedPost(object),
-             preserveScroll: true,
+            preserveScroll: true,
         });
     } else {
         router.post(
@@ -288,7 +291,7 @@ const updateLike = (object) => {
             },
             {
                 onFinish: () => updatedPost(object),
-                 preserveScroll: true,
+                preserveScroll: true,
             },
         );
     }
@@ -372,7 +375,7 @@ const toggleReminder = (postId) => {
 };
 
 const hasReminder = (post) => {
-    return (post.reminders || []).some(r => r.user_id === user.id);
+    return (post.reminders || []).some((r) => r.user_id === user.id);
 };
 
 // 1. SET (Create)
@@ -391,7 +394,7 @@ const submitReminder = (postId) => {
                 openReminderId.value = null;
                 reminderDate.value = "";
             },
-        }
+        },
     );
 };
 
@@ -410,22 +413,19 @@ const updateReminder = (postId) => {
                 openReminderId.value = null;
                 reminderDate.value = "";
             },
-        }
+        },
     );
 };
 
 // 3. DELETE
 const deleteReminder = (postId) => {
-    router.delete(
-        `/post-reminders/${postId}`,
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                openReminderId.value = null;
-                reminderDate.value = "";
-            },
-        }
-    );
+    router.delete(`/post-reminders/${postId}`, {
+        preserveScroll: true,
+        onFinish: () => {
+            openReminderId.value = null;
+            reminderDate.value = "";
+        },
+    });
 };
 </script>
 
@@ -456,7 +456,7 @@ const deleteReminder = (postId) => {
                             />
                         </div>
                         <img
-                            class="rounded-full w-[56px] h-[56px] -mt-[1px]"
+                            class="rounded-full w-[56px] h-[56px] -mt-[1px] ml-[2px]"
                             :src="slide.file"
                         />
                         <div
@@ -517,6 +517,16 @@ const deleteReminder = (postId) => {
                 <div class="text-lg my-4">
                     {{ post.text }}
                 </div>
+                <a
+                    :href="post.url"
+                    class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
+                    target="blank"
+                >
+                    <div>
+                        Visit Site
+                    </div>
+                    <ArrowRight :size="22" />
+                </a>
                 <!-- <div class="bg-black rounded-lg w-full min-h-[400px] flex items-center">
                     <img class="mx-auto w-full" :src="post.file" />
                 </div> -->
@@ -703,7 +713,10 @@ const deleteReminder = (postId) => {
             openOverlay = false;
         "
         @closeOverlay="openOverlay = false"
-        @openReminder="toggleReminder($event); openOverlay = false;"
+        @openReminder="
+            toggleReminder($event);
+            openOverlay = false;
+        "
     />
 
     <div

@@ -73,9 +73,13 @@ const textareaInput = (e) => {
         >
             <div class="w-full md:flex h-full overflow-auto rounded-xl">
                 <div class="flex items-center bg-black w-full">
-                    <img
+                    <!-- <img
                         class="rounded-xl min-w-[400px] p-4 mx-auto"
                         :src="post.file"
+                    />   -->
+                    <img
+                        class="rounded-xl min-w-[400px] p-4 mx-auto"
+                        src="/commentTemplate.PNG"
                     />
                 </div>
 
