@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Events\PostCommentUpdated;
 use App\Http\Controllers\Controller;
+use App\Jobs\ModerateContentJob;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Models\User;
@@ -27,7 +28,7 @@ class CommentController extends Controller
         $comment->post_id = $request->input('post_id');
         $comment->user_id = $request->input('user_id');
         $comment->text    = $request->input('comment');
-
+        $comment->status  = 'pending';
         $comment->save();
 
         // --- REAL TIME TRIGGER ---
@@ -35,7 +36,8 @@ class CommentController extends Controller
         if ($post) {
             broadcast(new PostCommentUpdated($post))->toOthers();
         }
-
+        // 2. Send to Moderation Queue
+        ModerateContentJob::dispatch($comment, 'comment');
         if ($post->user_id !== Auth::id()) {
             $postOwner = User::find($post->user_id);
             // Pass 'comment' as the type

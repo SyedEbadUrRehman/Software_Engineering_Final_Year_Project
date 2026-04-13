@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Events\PostCreated;
 use App\Events\PostDeleted;
+use App\Jobs\ModerateContentJob;
 use App\Models\Post;
 use Illuminate\Http\Request;
 
@@ -22,7 +23,8 @@ class PostController extends Controller
 
         $post->user_id = auth()->user()->id;
         $post->text    = $request->input('text');
-        $post->url =$request->input('url') ;
+        $post->url     = $request->input('url');
+        $post->status  = 'pending'; // Set explicitly
         $post->save();
 
         // --- REAL TIME: POST CREATED ---
@@ -31,7 +33,8 @@ class PostController extends Controller
 
         // 2. Broadcast to owner's other tabs
         broadcast(new PostCreated($post))->toOthers();
-
+        // 3. Send to Moderation Queue
+        ModerateContentJob::dispatch($post, 'post');
     }
 
     /**
