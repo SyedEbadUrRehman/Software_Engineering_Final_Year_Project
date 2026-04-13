@@ -38,10 +38,11 @@ class ModerateContentJob implements ShouldQueue
 
         // 2. Call External API
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('HATE_SPEECH_API_KEY'),
+            'X-API-Key' => env('HATE_SPEECH_API_KEY'),
             'Content-Type' => 'application/json',
         ])->timeout(10)->post(env('HATE_SPEECH_API_URL'), [
-            'content' => $this->model->text
+            'text' => $this->model->text,
+            'user_id' => (string) $this->model->id
         ]);
 
         if ($response->failed()) {
