@@ -54,7 +54,6 @@ const handleCommentUpdate = (eventData) => {
     const post = posts.value.data.find((p) => p.id === eventData.id);
 
     if (post) {
-        // console.log(`Updating comments for Post #${eventData.id}`);
         // Swap the comments array with the new real-time data
         post.comments = eventData.comments;
     }
@@ -87,6 +86,38 @@ const handleReminderSent = (eventData) => {
     }
 };
 
+// --- NEW HELPER: Handle Moderation Results ---
+const handleModerationUpdate = (eventData) => {
+    if (eventData.type === "post") {
+        if (eventData.status === "deleted") {
+            // Rips the post out of the feed instantly
+            handlePostDeletion({ id: eventData.contentId });
+        } else if (eventData.status === "flagged") {
+            // Find post and mark it flagged so UI can show a warning
+            const post = posts.value.data.find(
+                (p) => p.id === eventData.contentId,
+            );
+            if (post) post.status = "flagged";
+        }
+    } else if (eventData.type === "comment") {
+        // Find which post contains this comment
+        for (let post of posts.value.data) {
+            const commentIndex = post.comments.findIndex(
+                (c) => c.id === eventData.contentId,
+            );
+            if (commentIndex !== -1) {
+                if (eventData.status === "deleted") {
+                    // Rip the comment out instantly
+                    post.comments.splice(commentIndex, 1);
+                } else if (eventData.status === "flagged") {
+                    post.comments[commentIndex].status = "flagged";
+                }
+                break; // Stop searching once found
+            }
+        }
+    }
+};
+
 onMounted(() => {
     // 1. MY USER CHANNEL
     window.Echo.private(`App.Models.User.${user.id}`)
@@ -109,6 +140,10 @@ onMounted(() => {
         // NEW: Listen for comments on my posts
         .listen(".post.comment.updated", (e) => {
             handleCommentUpdate(e);
+        })
+        // NEW: Listen for Moderation API results
+        .listen(".content.moderated", (e) => {
+            handleModerationUpdate(e);
         });
 
     // 2. Listen for "Post Shared" in my Circles
@@ -514,58 +549,66 @@ const deleteReminder = (postId) => {
                     />
                     <!-- @click="deleteFunc({id:post.id,deleteType : 'Post'})" -->
                 </div>
-                <div class="text-lg my-4">
-                    {{ post.text }}
-                </div>
-                <a
-                    :href="post.url"
-                    class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
-                    target="blank"
-                >
-                    <div>
-                        Visit Site
+                <div class="postControllerOverlay relative">
+                    <div v-if="post.status === 'flagged'" class="absolute backdrop-blur-md shadow-md bg-white/30 rounded-sm
+                     w-full h-full flex items-center justify-center flex-col">
+                    <p class="font-bold text-lg">This Post contains sensitive Content</p>
+                    <p
+                        class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
+                        @click="post.status = 'allowed'"
+                    >See Anyway</p>
                     </div>
-                    <ArrowRight :size="22" />
-                </a>
-                <!-- <div class="bg-black rounded-lg w-full min-h-[400px] flex items-center">
+                    <div class="text-lg my-4">
+                        {{ post.text }}
+                    </div>
+                    <a
+                        :href="post.url"
+                        class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
+                        target="blank"
+                    >
+                        <div>Visit Site</div>
+                        <ArrowRight :size="22" />
+                    </a>
+
+                    <!-- <div class="bg-black rounded-lg w-full min-h-[400px] flex items-center">
                     <img class="mx-auto w-full" :src="post.file" />
                 </div> -->
 
-                <LikesSection
-                    :post="post"
-                    @like="updateLike($event)"
-                    @share="toggleShare"
-                    @comment="openOverlayToggler(post)"
-                    @saved="toggleSave"
-                    @reminder="toggleReminder($event)"
-                />
+                    <LikesSection
+                        :post="post"
+                        @like="updateLike($event)"
+                        @share="toggleShare"
+                        @comment="openOverlayToggler(post)"
+                        @saved="toggleSave"
+                        @reminder="toggleReminder($event)"
+                    />
 
-                <div class="text-black font-extrabold py-1">
-                    {{ post.likes.length }} likes
-                </div>
-                <!-- <div>
+                    <div class="text-black font-extrabold py-1">
+                        {{ post.likes.length }} likes
+                    </div>
+                    <!-- <div>
                     <span class="text-black font-extrabold">{{ post.user.name }}</span>
                     {{ post.text }}
                 </div> -->
-                <div class="flex justify-between">
-                    <button
-                        @click="
-                            currentPost = post;
-                            openOverlay = true;
-                        "
-                        class="text-gray-500 font-extrabold py-1"
-                    >
-                        View all {{ post.comments.length }} comments
-                    </button>
+                    <div class="flex justify-between">
+                        <button
+                            @click="
+                                currentPost = post;
+                                openOverlay = true;
+                            "
+                            class="text-gray-500 font-extrabold py-1"
+                        >
+                            View all {{ post.comments.length }} comments
+                        </button>
 
-                    <button
-                        class="text-gray-500 font-extrabold py-1"
-                        v-if="post.user.id === user.id"
-                    >
-                        Shared in {{ post.shared_circles_count }} circles
-                    </button>
+                        <button
+                            class="text-gray-500 font-extrabold py-1"
+                            v-if="post.user.id === user.id"
+                        >
+                            Shared in {{ post.shared_circles_count }} circles
+                        </button>
+                    </div>
                 </div>
-
                 <div
                     v-if="openShareId === post.id"
                     class="mt-4 p-5 pt-7 bg-white rounded-2xl border border-gray-100 transition-all"
