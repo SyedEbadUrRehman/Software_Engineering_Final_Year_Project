@@ -190,6 +190,9 @@ onMounted(() => {
                 .listen(".post.comment.updated", (e) => {
                     handleCommentUpdate(e);
                 })
+                .listen(".content.moderated", (e) => {
+                    handleModerationUpdate(e);
+                })
                 .error((error) => {
                     console.error("Channel Error:", error);
                 });
@@ -552,7 +555,7 @@ const deleteReminder = (postId) => {
                 <div class="postControllerOverlay relative">
                     <div v-if="post.status === 'flagged'" class="absolute backdrop-blur-md shadow-md bg-white/30 rounded-sm
                      w-full h-full flex items-center justify-center flex-col">
-                    <p class="font-bold text-lg">This Post contains sensitive Content</p>
+                    <p class="font-bold text-lg">This Post may contains sensitive Content</p>
                     <p
                         class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
                         @click="post.status = 'allowed'"

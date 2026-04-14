@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Events;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -15,25 +14,38 @@ class ContentModerated implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-   public $contentId;
-    public $type;      // 'post' or 'comment'
-    public $status;    // 'approved', 'flagged', or 'deleted'
+    public $contentId;
+    public $type;
+    public $status;
     public $userId;
+    public $circleIds;
+    public $postOwnerId;
 
-    public function __construct($contentId, $type, $status, $userId)
+    public function __construct($contentId, $type, $status, $userId, $circleIds = [], $postOwnerId = null)
     {
-        $this->contentId = $contentId;
-        $this->type = $type;
-        $this->status = $status;
-        $this->userId = $userId;
+        $this->contentId   = $contentId;
+        $this->type        = $type;
+        $this->status      = $status;
+        $this->userId      = $userId;
+        $this->circleIds   = $circleIds; // <-- ASSIGN IT
+        $this->postOwnerId = $postOwnerId ?? $userId;
     }
 
     public function broadcastOn(): array
     {
-        // Broadcast directly to the author's private channel
-        return [
+        // 1. Always broadcast to the author's private channel
+        $channels = [
             new PrivateChannel('App.Models.User.' . $this->userId),
         ];
+        if ($this->postOwnerId !== $this->userId) {
+            $channels[] = new PrivateChannel('App.Models.User.' . $this->postOwnerId);
+        }
+        // 2. Add a channel for every circle the post is shared in
+        foreach ($this->circleIds as $circleId) {
+            $channels[] = new PrivateChannel('circle.' . $circleId);
+        }
+
+        return $channels;
     }
 
     public function broadcastAs(): string

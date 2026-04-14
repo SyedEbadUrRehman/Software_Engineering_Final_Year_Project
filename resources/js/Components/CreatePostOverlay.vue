@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive } from "vue";
-import { router, usePage } from "@inertiajs/vue3";
+import { router, useForm, usePage } from "@inertiajs/vue3";
 
 import Close from "vue-material-design-icons/Close.vue";
 import ArrowLeft from "vue-material-design-icons/ArrowLeft.vue";
@@ -11,11 +11,11 @@ const user = usePage().props.auth.user;
 
 const emit = defineEmits(["close"]);
 
-const form = reactive({
+const form = useForm ({
     text: null,
     file: null,
     url: null,
-});
+})
 
 let isValidFile = ref(null);
 let fileDisplay = ref("");
@@ -45,7 +45,7 @@ const createPostFunc = () => {
     error.value.file = null;
     error.value.url = null;
 
-    router.post("/posts", form, {
+    form.post("/posts",  {
         forceFormData: true,
         preserveScroll: true,
         onError: (errors) => {

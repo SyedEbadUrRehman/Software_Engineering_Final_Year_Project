@@ -3,10 +3,8 @@
 namespace App\Events;
 
 use App\Models\Post;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -52,6 +50,7 @@ class PostCommentUpdated implements ShouldBroadcast
                 return [
                     'id'   => $comment->id,
                     'text' => $comment->text,
+                    'status'=>$comment->status,
                     'user' => [
                         'id'   => $comment->user->id,
                         'name' => $comment->user->name,

@@ -3,6 +3,8 @@ namespace App\Jobs;
 
 use App\Events\ContentModerated;
 use App\Models\ModerationLog;
+use App\Models\Post;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
@@ -34,7 +36,7 @@ class ModerateContentJob implements ShouldQueue
         if ($this->model->status !== 'pending') {
             return;
         }
-
+   
         // 2. Call External API
         $response = Http::withHeaders([
             'X-API-Key'    => env('HATE_SPEECH_API_KEY'),
@@ -74,23 +76,55 @@ class ModerateContentJob implements ShouldQueue
             'api_response'     => json_encode($apiResult),
         ]);
 
-        // 6. Broadcast to UI
+        // 6. Find all circles where this content is shared
+        $circleIds   = [];
+        $postOwnerId = $this->model->user_id;
+// We need the parent Post object for the Notification class
+        $parentPost = $this->type === 'post' ? $this->model : \App\Models\Post::withTrashed()->find($this->model->post_id);
+
+        if ($this->type === 'post') {
+            $circleIds = $this->model->sharedCircles()->pluck('circles.id')->toArray();
+        } elseif ($this->type === 'comment') {
+            $parentPost = Post::find($this->model->post_id);
+            if ($parentPost) {
+                $circleIds   = $parentPost->sharedCircles()->pluck('circles.id')->toArray();
+                $postOwnerId = $parentPost->user_id; // <-- GET THE POST OWNER'S ID
+            }
+        }
+
+        // 7. Broadcast to UI
         broadcast(new ContentModerated(
             $this->model->id,
             $this->type,
             $newStatus,
-            $this->model->user_id
+            $this->model->user_id,
+            $circleIds,
+            $postOwnerId // <-- PASS IT TO THE EVENT
         ));
 
-        // 7. Send Notifications ONLY if it wasn't deleted
+        // 8. Send Notifications ONLY if it wasn't deleted
         if ($newStatus !== 'deleted') {
             $this->triggerNotifications();
         }
-    }
 
-    private function triggerNotifications()
-    {
-        // Example: If it's a comment, notify the post owner here
-        // if ($this->type === 'comment') { ... notify ... }
+        // 8. --- NEW: SEND NOTIFICATIONS ---
+        $contentAuthor = User::find($this->model->user_id);
+
+        if ($newStatus === 'deleted' && $parentPost && $contentAuthor) {
+            // Tell the author their content was deleted
+            if ($this->type === 'post') {
+                $contentAuthor->notify(new \App\Notifications\PostActivityNotification(
+                    $parentPost,
+                    $contentAuthor, // Shows their own avatar/name
+                    'moderation_post_deleted'
+                ));
+            } elseif ($this->type === 'comment') {
+                $contentAuthor->notify(new \App\Notifications\PostActivityNotification(
+                    $parentPost,
+                    $contentAuthor, // Shows their own avatar/name
+                    'moderation_comment_deleted'
+                ));
+            }
+        }
     }
 }

@@ -39,6 +39,8 @@ class PostActivityNotification extends Notification implements ShouldQueue
             'like' => 'liked your post',
             'comment' => 'commented on your post',
             'reminder' => 'idea reminder that is now due in 12 hours',
+            'moderation_post_deleted' => 'Your post was removed by our automated moderation system for violating community guidelines (bad words/hate speech)',
+            'moderation_comment_deleted' => 'Your comment was removed by our automated moderation system for violating community guidelines (bad words/hate speech)',
             default => 'interacted with your post',
         };
     }
