@@ -22,7 +22,7 @@ return new class extends Migration
 
             $table->text('text');
             $table->string('file')->nullable();
-            $table->string('url');
+            $table->string('url')->nullable();
             $table->timestamps();
         });
     }

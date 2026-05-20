@@ -16,7 +16,7 @@ class PostController extends Controller
     {
         $post = new Post;
         $request->validate([
-            'url'  => 'required',
+            // 'url'  => 'required',
             'text' => 'required',
         ]);
         // $post = (new FileService)->updateFile($post, $request, 'post');
