@@ -102,10 +102,7 @@ class ModerateContentJob implements ShouldQueue
             $postOwnerId // <-- PASS IT TO THE EVENT
         ));
 
-        // 8. Send Notifications ONLY if it wasn't deleted
-        if ($newStatus !== 'deleted') {
-            $this->triggerNotifications();
-        }
+       
 
         // 8. --- NEW: SEND NOTIFICATIONS ---
         $contentAuthor = User::find($this->model->user_id);

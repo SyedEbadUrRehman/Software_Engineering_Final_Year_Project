@@ -3,7 +3,7 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build && vite build --ssr",
-        "all": "concurrently --kill-others \"npm run dev\" \"php artisan serve\" \"php artisan queue:listen\" \"php artisan schedule:work\" \"php artisan reverb:start\" "
+        "all": "concurrently --kill-others \"npm run dev\" \"php artisan serve\" \"php artisan queue:work\" \"php artisan schedule:work\" \"php artisan reverb:start\" "
     },
     "devDependencies": {
         "@inertiajs/vue3": "^1.0.0",
