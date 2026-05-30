@@ -144,6 +144,13 @@ onMounted(() => {
         // NEW: Listen for Moderation API results
         .listen(".content.moderated", (e) => {
             handleModerationUpdate(e);
+        })
+        .listen(".follower.post.shared", (e) => {
+            // Uniqueness check: Don't push if it's already in the feed
+            const exists = posts.value.data.some((p) => p.id === e.id);
+            if (!exists) {
+                posts.value.data.unshift(e);
+            }
         });
 
     // 2. Listen for "Post Shared" in my Circles
@@ -252,6 +259,18 @@ const unsharePost = (shareId) => {
     });
 };
 
+const shareToFollowers = (post) => {
+    router.post(
+        `/posts/${post.id}/share-followers`,
+        {},
+        {
+            onFinish: () => {
+                toggleShare(post.id); // Close the share menu automatically
+            },
+            preserveScroll: true,
+        },
+    );
+};
 const openOverlayToggler = (post) => {
     currentPost.value = post;
     openOverlay.value = true;
@@ -553,13 +572,19 @@ const deleteReminder = (postId) => {
                     <!-- @click="deleteFunc({id:post.id,deleteType : 'Post'})" -->
                 </div>
                 <div class="postControllerOverlay relative">
-                    <div v-if="post.status === 'flagged'" class="absolute backdrop-blur-md shadow-md bg-white/30 rounded-sm
-                     w-full h-full flex items-center justify-center flex-col">
-                    <p class="font-bold text-lg">This Post may contains sensitive Content</p>
-                    <p
-                        class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
-                        @click="post.status = 'allowed'"
-                    >See Anyway</p>
+                    <div
+                        v-if="post.status === 'flagged'"
+                        class="absolute backdrop-blur-md shadow-md bg-white/30 rounded-sm w-full h-full flex items-center justify-center flex-col"
+                    >
+                        <p class="font-bold text-lg">
+                            This Post may contains sensitive Content
+                        </p>
+                        <p
+                            class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
+                            @click="post.status = 'allowed'"
+                        >
+                            See Anyway
+                        </p>
                     </div>
                     <div class="text-lg my-4">
                         {{ post.text }}
@@ -683,6 +708,17 @@ const deleteReminder = (postId) => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                    <div
+                        v-if="post.user.id === user.id"
+                        class="mt-4 pt-4 border-t border-gray-100"
+                    >
+                        <button
+                            @click="shareToFollowers(post)"
+                            class="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-sm active:scale-95"
+                        >
+                            Broadcast to All My Followers
+                        </button>
                     </div>
                 </div>
                 <div

@@ -127,7 +127,9 @@ const getUploadedImage = (e) => {
                                 <span class="font-extrabold">123</span>  followers
                             </div>
                             <div class="mr-6">
+                                <Link   :href="route('follow.index')" >
                                 <span class="font-extrabold">456</span>  following
+                                </Link>
                             </div>
                         </div>
                     </div>

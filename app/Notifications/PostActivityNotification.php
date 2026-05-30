@@ -17,7 +17,7 @@ class PostActivityNotification extends Notification implements ShouldQueue
     public $user; // The person who did the action (Obaid)
     public $type; // 'share', 'like', 'comment'
 
-    public function __construct(Post $post, User $user, string $type)
+    public function __construct(?Post $post, User $user, string $type)
     {
         $this->post = $post;
         $this->user = $user;
@@ -36,6 +36,8 @@ class PostActivityNotification extends Notification implements ShouldQueue
     {
         return match ($this->type) {
             'share' => 'shared a post with you',
+            'share_follower' => 'shared a new post with their followers', // NEW
+            'follow' => 'started following you', // NEW
             'like' => 'liked your post',
             'comment' => 'commented on your post',
             'reminder' => 'idea reminder that is now due in 12 hours',

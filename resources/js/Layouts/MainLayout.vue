@@ -190,6 +190,7 @@ function createNoteTogglerFun() {
             <div
                 v-if="
                     !$page.url.includes('/circles') &&
+                    !$page.url.includes('/follow') &&
                     !$page.url.includes('/users')
                 "
                 id="SuggestionsSection"

@@ -4,6 +4,7 @@ use App\Events\TestEvent;
 use App\Http\Controllers\CircleController;
 use App\Http\Controllers\CircleMemberController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\FollowController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\NotificationController;
@@ -76,8 +77,13 @@ Route::middleware('auth')->group(function () {
         ->name('saves.destroy');
 
     // search page route
-    Route::get('/search', [SearchController::class, 'index'])
-        ->name('search.index');
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
+    
+    // follow feature
+    Route::get('/follow', [FollowController::class, 'index'])->name('follow.index');
+    Route::post('/users/{user}/follow', [FollowController::class, 'follow'])->name('users.follow');
+    Route::delete('/users/{user}/unfollow', [FollowController::class, 'unfollow'])->name('users.unfollow');
+    Route::post('/posts/{post}/share-followers', [FollowController::class, 'shareToFollowers'])->name('posts.share-followers');
 
 });
 
@@ -86,19 +92,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 });
 
-
 Route::middleware('auth')->group(function () {
     Route::post('/post-reminders', [PostReminderController::class, 'store'])->name('post-reminders.store');
     Route::put('/post-reminders/{postId}', [PostReminderController::class, 'update'])->name('post-reminders.update');
     Route::delete('/post-reminders/{postId}', [PostReminderController::class, 'destroy'])->name('post-reminders.destroy');
 });
 
-
 Route::get('/fire', function () {
     broadcast(new TestEvent());
     return 'Event fired';
 });
-
-
 
 require __DIR__ . '/auth.php';
