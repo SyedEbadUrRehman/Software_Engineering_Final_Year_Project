@@ -35,7 +35,7 @@ class HomeController extends Controller
         // 3. Shared by followers
             ->orWhereIn('id', $followerSharedPostIds)
             ->with([
-                'user', 'comments.user', 'likes', 'sharedCircles', 'saves', 'reminders',
+                'user', 'comments.user', 'likes', 'sharedCircles', 'saves', 'reminders','authUserFollowerShare'
             ])
             ->latest()
             ->get(); // Will return unique post models

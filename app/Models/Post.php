@@ -1,6 +1,14 @@
 <?php
 namespace App\Models;
 
+use App\Models\Circle;
+use App\Models\Comment;
+use App\Models\FollowerPostShare;
+use App\Models\Like;
+use App\Models\PostCircleShare;
+use App\Models\PostReminder;
+use App\Models\SavedPost;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -45,4 +53,17 @@ class Post extends Model
     {
         return $this->hasMany(PostReminder::class);
     }
+    public function followerShares()
+    {
+        return $this->hasMany(FollowerPostShare::class, 'post_id');
+    }
+
+//  NEW: Relationship specifically for the auth user
+    public function authUserFollowerShare()
+    {
+        return $this->hasOne(FollowerPostShare::class, 'post_id')
+            ->where('shared_by_id', auth()->id());
+    }
+
+
 }

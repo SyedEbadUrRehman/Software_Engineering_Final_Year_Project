@@ -39,19 +39,16 @@ class SharePostToFollowersJob implements ShouldQueue
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
-            }
 
-            // BUG FIX: Insert DB records BEFORE broadcasting.
-            // Previously, broadcast happened before insert, so the broadcast payload
-            // (generated via AllPostsCollection) couldn't find the DB row and
-            // always set is_shared_with_followers = false.
-            DB::table('follower_post_shares')->insert($feedDataToInsert);
-
-            // Now broadcast and notify AFTER the data is persisted
-            foreach ($followers as $follower) {
+                // Broadcast instantly
                 broadcast(new PostSharedToFollower($this->post, $follower->id));
+
+                // Notify
                 $follower->notify(new PostActivityNotification($this->post, $author, 'share_follower'));
             }
+
+            // Execute Bulk Insert
+            DB::table('follower_post_shares')->insert($feedDataToInsert);
         });
     }
 }

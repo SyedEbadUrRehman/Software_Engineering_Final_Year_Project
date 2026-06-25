@@ -151,24 +151,10 @@ onMounted(() => {
 
             if (existingPostIndex !== -1) {
                 // SCENARIO A: The user already has this post in their UI (likely the Post Owner)
-                // BUG FIX: Preserve the author's optimistic is_shared_with_followers state.
-                // When the author clicks "Share", they optimistically set is_shared_with_followers=true.
-                // Previously, the spread `...e` would overwrite it with the (broken) event payload value.
-                // Now the event correctly sends is_shared_with_followers=true, but we still protect
-                // against race conditions by not letting the event downgrade the author's state.
-                const existingPost = posts.value.data[existingPostIndex];
-                const isAuthor = existingPost.user.id === user.id;
-
-                // For the author: preserve their optimistic state on is_shared_with_followers
-                // For other users: use the event's value
-                const sharedState = isAuthor
-                    ? existingPost.is_shared_with_followers
-                    : e.is_shared_with_followers;
-
+                // Update the existing post's properties with the latest DB payload from the event
                 posts.value.data[existingPostIndex] = {
-                    ...existingPost,
-                    ...e,
-                    is_shared_with_followers: sharedState,
+                    ...posts.value.data[existingPostIndex],
+                    ...e
                 };
                 
                 // If this post is currently active inside the comment/detail overlay, refresh it too

@@ -24,14 +24,9 @@ class PostSharedToFollower implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        // BUG FIX: Only broadcast to the specific follower, NOT the author.
-        // Previously, the author's channel was included here, causing the author
-        // to receive N duplicate events (one per follower). Each event would
-        // overwrite the author's optimistic is_shared_with_followers state.
-        // The author's UI is updated optimistically on click and confirmed via
-        // the API response, so they don't need real-time per-follower events.
         return [
             new PrivateChannel('App.Models.User.' . $this->followerId),
+            new PrivateChannel('App.Models.User.' . $this->post->user_id),
         ];
     }
 
@@ -43,13 +38,6 @@ class PostSharedToFollower implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         // Format identically to API so Vue can map it directly
-        $data = (new AllPostsCollection(collect([$this->post])))->resolve()[0];
-
-        // BUG FIX: In queue worker context, auth()->id() is null, which causes
-        // AllPostsCollection to always set is_shared_with_followers = false.
-        // Since this event IS the "share" event, we must explicitly force it to true.
-        $data['is_shared_with_followers'] = true;
-
-        return $data;
+        return (new AllPostsCollection(collect([$this->post])))->resolve()[0];
     }
 }

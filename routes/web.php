@@ -78,12 +78,13 @@ Route::middleware('auth')->group(function () {
 
     // search page route
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
-    
+
     // follow feature
     Route::get('/follow', [FollowController::class, 'index'])->name('follow.index');
     Route::post('/users/{user}/follow', [FollowController::class, 'follow'])->name('users.follow');
     Route::delete('/users/{user}/unfollow', [FollowController::class, 'unfollow'])->name('users.unfollow');
     Route::post('/posts/{post}/share-followers', [FollowController::class, 'shareToFollowers'])->name('posts.share-followers');
+    Route::delete('/posts/{post}/unshare-followers', [FollowController::class, 'unshareFromFollowers'])->name('posts.unshare-followers');
 
 });
 
