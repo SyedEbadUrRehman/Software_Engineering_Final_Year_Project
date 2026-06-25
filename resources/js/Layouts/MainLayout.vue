@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from "vue"; // Import computed
-import { Link, usePage } from "@inertiajs/vue3"; // Import usePage
+import { Link, router, usePage } from "@inertiajs/vue3"; // Import usePage
 
 import Magnify from "vue-material-design-icons/Magnify.vue";
 import HeartOutline from "vue-material-design-icons/HeartOutline.vue";
@@ -43,6 +43,9 @@ onMounted(() => {
 function createNoteTogglerFun() {
     window.parent.postMessage("request_tab_info", "*");
 }
+const followUserById = (userId) => {
+    router.post(`/users/${userId}/follow`, {}, { preserveScroll: true });
+};
 </script>
 
 <template>
@@ -240,32 +243,37 @@ function createNoteTogglerFun() {
                     v-for="randUser in $page.props.randomUsers"
                     :key="randUser"
                 >
-                    <Link
-                        :href="route('users.show', { id: randUser.id })"
+                    <div
                         class="flex items-center justify-between max-w-[300px] pb-2"
                     >
-                        <div class="flex items-center">
-                            <img
-                                class="rounded-full z-10 w-[37px] h-[37px]"
-                                :src="randUser.file"
-                            />
-                            <div class="pl-4">
-                                <div class="text-black font-extrabold">
-                                    {{ randUser.name }}
-                                </div>
-                                <div
-                                    class="text-gray-500 text-extrabold text-sm"
-                                >
-                                    Suggested for you
+                        <Link
+                            :href="route('users.show', { id: randUser.id })"
+                            class=""
+                        >
+                            <div class="flex items-center">
+                                <img
+                                    class="rounded-full z-10 w-[37px] h-[37px]"
+                                    :src="randUser.file"
+                                />
+                                <div class="pl-4">
+                                    <div class="text-black font-extrabold">
+                                        {{ randUser.name }}
+                                    </div>
+                                    <div
+                                        class="text-gray-500 text-extrabold text-sm"
+                                    >
+                                        Suggested for you
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </Link>
                         <button
+                            @click="followUserById(randUser.id)"
                             class="text-blue-500 hover:text-gray-900 text-xs font-extrabold"
                         >
                             Follow
                         </button>
-                    </Link>
+                    </div>
                 </div>
 
                 <div class="max-w-[300px] mt-5">
@@ -339,13 +347,14 @@ body {
 
 @media screen and (max-width: 900px) {
     svg {
-        width:26px;
-        height:26px;
+        width: 26px;
+        height: 26px;
     }
     :root {
         font-size: 93%;
     }
-}@media screen and (max-width: 450px) {
+}
+@media screen and (max-width: 450px) {
     svg {
         width: 20px;
         height: 20px;

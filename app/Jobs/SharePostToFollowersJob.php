@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Events\PostSharedToFollower;
+use App\Events\PostShareStatusUpdated;
 use App\Models\Post;
 use App\Notifications\PostActivityNotification;
 use Illuminate\Bus\Queueable;
@@ -53,5 +54,10 @@ class SharePostToFollowersJob implements ShouldQueue
                 $follower->notify(new PostActivityNotification($this->post, $author, 'share_follower'));
             }
         });
+
+        // Fire ONCE, only to the author's own channel, confirming the final state.
+        // This is what the author's UI listens to in order to sync the button —
+        // it is never sent to followers, so it can't fire N times.
+        broadcast(new PostShareStatusUpdated($this->post->id, $author->id, true));
     }
 }

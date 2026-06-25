@@ -2,6 +2,7 @@
 namespace App\Jobs;
 
 use App\Events\PostUnsharedFromFollowers;
+use App\Events\PostShareStatusUpdated;
 use App\Models\Post;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -40,5 +41,8 @@ class UnsharePostFromFollowersJob implements ShouldQueue
         foreach ($followerIds as $followerId) {
             broadcast(new PostUnsharedFromFollowers($this->post->id, $followerId, $this->authorId));
         }
+
+        // 4. Fire ONCE, only to the author's channel, confirming the unshare.
+        broadcast(new PostShareStatusUpdated($this->post->id, $this->authorId, false));
     }
 }

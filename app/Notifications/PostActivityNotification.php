@@ -50,7 +50,7 @@ class PostActivityNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'post_id'       => $this->post->id,
+            'post_id'       => $this->post?->id,
             'notifier_id'   => $this->user->id,
             'notifier_name' => $this->user->name,
             'notifier_file' => $this->user->file,

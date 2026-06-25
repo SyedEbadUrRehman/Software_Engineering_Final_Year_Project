@@ -59,11 +59,19 @@ class FollowController extends Controller
             ->where('post_id', $post->id)->where('shared_by_id', auth()->id())->exists();
 
         if ($alreadyShared) {
-            return back();
+            // Idempotent: nothing to do, but still a success from the client's
+            // point of view (it's already in the desired state).
+            return response()->json(['status' => 'already_shared'], 200);
         }
 
         SharePostToFollowersJob::dispatch($post);
-        return back();
+
+        // NOTE: This response fires immediately, BEFORE the queued job runs.
+        // The frontend already optimistically flipped is_shared_with_followers
+        // locally — this response just confirms the request was accepted.
+        // The actual confirmation of final state comes later via the
+        // post.share.status.updated websocket event, once the job completes.
+        return response()->json(['status' => 'queued'], 202);
     }
 
 
@@ -76,7 +84,7 @@ class FollowController extends Controller
         // Dispatch the cleanup operation to background workers
         UnsharePostFromFollowersJob::dispatch($post, auth()->id());
 
-        return back();
+        return response()->json(['status' => 'queued'], 202);
     }
 
 }

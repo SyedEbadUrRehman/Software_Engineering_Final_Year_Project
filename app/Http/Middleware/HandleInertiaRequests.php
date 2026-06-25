@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Middleware;
 
 use App\Models\User;
@@ -19,7 +18,7 @@ class HandleInertiaRequests extends Middleware
     /**
      * Determine the current asset version.
      */
-    public function version(Request $request): string|null
+    public function version(Request $request): string | null
     {
         return parent::version($request);
     }
@@ -32,12 +31,20 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
-            'auth' => [
-                'user' => $request->user(),
+            'auth'        => [
+                'user'                    => $request->user(),
                 'unreadNotificationCount' => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
             ],
-            'randomUsers' => User::inRandomOrder()->limit(5)->get(),
-            'ziggy' => function () use ($request) {
+            'randomUsers' => $request->user()
+                ? User::whereNotIn('id', array_merge(
+                $request->user()->followings()->pluck('users.id')->toArray(),
+                [$request->user()->id]
+            ))
+                ->inRandomOrder()
+                ->limit(5)
+                ->get()
+                : User::inRandomOrder()->limit(5)->get(),
+            'ziggy'       => function () use ($request) {
                 return array_merge((new Ziggy)->toArray(), [
                     'location' => $request->url(),
                 ]);

@@ -147,7 +147,9 @@ onMounted(() => {
         })
         .listen(".follower.post.shared", (e) => {
             // Find if the post already exists in this user's current feed array
-            const existingPostIndex = posts.value.data.findIndex((p) => p.id === e.id);
+            const existingPostIndex = posts.value.data.findIndex(
+                (p) => p.id === e.id,
+            );
 
             if (existingPostIndex !== -1) {
                 // SCENARIO A: The user already has this post in their UI (likely the Post Owner)
@@ -170,7 +172,7 @@ onMounted(() => {
                     ...e,
                     is_shared_with_followers: sharedState,
                 };
-                
+
                 // If this post is currently active inside the comment/detail overlay, refresh it too
                 if (currentPost.value && currentPost.value.id === e.id) {
                     currentPost.value = posts.value.data[existingPostIndex];
@@ -193,20 +195,37 @@ onMounted(() => {
                     // SCENARIO A: The current user is the OWNER of the post
                     // Do NOT erase it from their screen! Just update the toggle flag back to false
                     targetPost.is_shared_with_followers = false;
-                    
+
                     if (currentPost.value && currentPost.value.id === e.id) {
                         currentPost.value.is_shared_with_followers = false;
                     }
                 } else {
                     // SCENARIO B: The current user is a FOLLOWER
                     // Completely strip the post out of their feed layout instantly
-                    posts.value.data = posts.value.data.filter((p) => p.id !== e.id);
-                    
+                    posts.value.data = posts.value.data.filter(
+                        (p) => p.id !== e.id,
+                    );
+
                     if (currentPost.value && currentPost.value.id === e.id) {
                         currentPost.value = null;
                         openOverlay.value = false;
                     }
                 }
+            }
+        })
+        // NEW: Authoritative, author-only, single-fire confirmation of share state.
+        // Sent ONLY to the author's channel, exactly once per share/unshare action
+        // (never broadcast to followers, never fired N times).
+        .listen(".post.share.status.updated", (e) => {
+            const post = posts.value.data.find((p) => p.id === e.id);
+
+            if (post) {
+                post.is_shared_with_followers = e.is_shared_with_followers;
+            }
+
+            if (currentPost.value && currentPost.value.id === e.id) {
+                currentPost.value.is_shared_with_followers =
+                    e.is_shared_with_followers;
             }
         });
 
@@ -325,20 +344,36 @@ const shareToFollowers = (post) => {
 
     openShareId.value = null;
 
-    router.post(
-        `/posts/${post.id}/share-followers`,
-        {},
-        {
-            preserveScroll: true,
-            preserveState: true,
-
-            onError: () => {
-                if (targetPost) {
-                    targetPost.is_shared_with_followers = false;
-                }
-            },
+    // IMPORTANT: Use fetch() here instead of router.post().
+    // router.post() triggers a full Inertia visit, which re-runs
+    // HomeController@index and overwrites posts.value.data with fresh
+    // server props. Since the share job is queued (QUEUE_CONNECTION=database),
+    // it almost never finishes before this response comes back, so the
+    // fresh props would say is_shared_with_followers = false and stomp the
+    // optimistic flip we just made above. fetch() avoids touching Inertia's
+    // page props entirely — the websocket event (post.share.status.updated)
+    // is now the single source of truth that confirms/corrects this state.
+    fetch(`/posts/${post.id}/share-followers`, {
+        method: "POST",
+        headers: {
+            "X-CSRF-TOKEN": document
+                .querySelector('meta[name="csrf-token"]')
+                .getAttribute("content"),
+            Accept: "application/json",
         },
-    );
+    })
+        .then((res) => {
+            if (!res.ok && targetPost) {
+                // Server responded but rejected the request (e.g. 403/422). Roll back.
+                targetPost.is_shared_with_followers = false;
+            }
+        })
+        .catch(() => {
+            // Network-level failure (server unreachable, etc). Roll back.
+            if (targetPost) {
+                targetPost.is_shared_with_followers = false;
+            }
+        });
 };
 
 const unshareFromFollowers = (post) => {
@@ -350,16 +385,27 @@ const unshareFromFollowers = (post) => {
 
     openShareId.value = null;
 
-    router.delete(`/posts/${post.id}/unshare-followers`, {
-        preserveScroll: true,
-        preserveState: true,
-
-        onError: () => {
+    // Same reasoning as shareToFollowers() above: fetch() instead of
+    // router.delete() so the Inertia page props are never touched here.
+    fetch(`/posts/${post.id}/unshare-followers`, {
+        method: "DELETE",
+        headers: {
+            "X-CSRF-TOKEN": document
+                .querySelector('meta[name="csrf-token"]')
+                .getAttribute("content"),
+            Accept: "application/json",
+        },
+    })
+        .then((res) => {
+            if (!res.ok && targetPost) {
+                targetPost.is_shared_with_followers = true;
+            }
+        })
+        .catch(() => {
             if (targetPost) {
                 targetPost.is_shared_with_followers = true;
             }
-        },
-    });
+        });
 };
 
 const openOverlayToggler = (post) => {
