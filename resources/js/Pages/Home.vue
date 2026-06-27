@@ -23,6 +23,7 @@ const circles = ref([]); // all circles
 const searchQuery = ref(""); // Tracks the text in the search box
 const openShareId = ref(null); // Tracks which post ID has the share div open
 const openReminderId = ref(null); // Tracks which post ID has the reminder div open
+const openScoreFeedbackId = ref(null); // Tracks which post ID has the reminder div open
 const reminderDate = ref("");
 
 const user = usePage().props.auth.user;
@@ -334,6 +335,64 @@ const unsharePost = (shareId) => {
         preserveScroll: true,
     });
 };
+// New feedbackScore Function
+const toggleFeedBackScore = (postId) => {
+    // If it's already open, close it
+    if (openScoreFeedbackId.value === postId) {
+        openScoreFeedbackId.value = null;
+        return;
+    }
+
+    // Open this post's reminder box
+    openScoreFeedbackId.value = postId;
+    openShareId.value = null; // Optional: close share box if it's open so they don't overlap
+    openReminderId.value = null; // Optional: close share box if it's open so they don't overlap
+};
+// The only 5 values selectable for post feedback. 1 = good ... 10 = bad.
+// Kept as a single constant so the template and validation logic agree.
+const feedbackValues = [1, 4, 6, 8, 10];
+const feedbackLabels = {
+    1: "I really like it",
+    4: "I maybe like it",
+    6: "I maybe dislike it",
+    8: "I dislike it",
+    10: "I really dislike it",
+};
+const submitFeedback = (post, rating) => {
+    const targetPost = posts.value.data.find((p) => p.id === post.id);
+    const previousRating = targetPost ? targetPost.auth_user_feedback : null;
+
+    // 1. Optimistic update — the selected radio fills in instantly.
+    if (targetPost) {
+        targetPost.auth_user_feedback = rating;
+    }
+
+    // 2. Send the request via Inertia
+    router.post(
+        `/posts/${post.id}/feedback`,
+        { rating },
+        {
+            // Prevents losing scroll position or full page reloads
+            preserveScroll: true,
+            onSuccess: () => {
+                openScoreFeedbackId.value = null;
+            },
+            // If the server returns validation errors or a 4xx/5xx status code
+            onError: () => {
+                if (targetPost) {
+                    targetPost.auth_user_feedback = previousRating;
+                }
+            },
+
+            // Backup fallback if the request fails technically (network drop, etc.)
+            onCancel: () => {
+                if (targetPost) {
+                    targetPost.auth_user_feedback = previousRating;
+                }
+            },
+        },
+    );
+};
 
 const shareToFollowers = (post) => {
     const targetPost = posts.value.data.find((p) => p.id === post.id);
@@ -559,6 +618,7 @@ const toggleReminder = (postId) => {
     // Open this post's reminder box
     openReminderId.value = postId;
     openShareId.value = null; // Optional: close share box if it's open so they don't overlap
+    openScoreFeedbackId.value = null; // Optional: close share box if it's open so they don't overlap
 
     // Pre-fill the date if the user already has a reminder set
     const post = posts.value.data.find((p) => p.id === postId);
@@ -743,6 +803,7 @@ const deleteReminder = (postId) => {
                         :post="post"
                         @like="updateLike($event)"
                         @share="toggleShare"
+                        @feedbackScore="toggleFeedBackScore($event)"
                         @comment="openOverlayToggler(post)"
                         @saved="toggleSave"
                         @reminder="toggleReminder($event)"
@@ -772,6 +833,73 @@ const deleteReminder = (postId) => {
                         >
                             Shared in {{ post.shared_circles_count }} circles
                         </button>
+                    </div>
+                </div>
+
+                <!-- Feedback widget: shown to everyone EXCEPT the post owner.
+                     One rating per user per post, but editable — if the user
+                     has already rated, their existing choice is pre-selected
+                     and changing it sends an update rather than a new row. -->
+                <!-- v-if="post.user.id !== user.id" -->
+                <div
+                    v-if="openScoreFeedbackId === post.id"
+                    class="m-1 md:m-4 rounded-md p-1 py-2 md:p-3 border border-gray-100 shadow"
+                >
+                    <div class="flex justify-between">
+                        <div
+                            class="text-[10px] font-black text-gray-800 uppercase tracking-widest mb-2"
+                        >
+                           Share your thoughts
+                            <span
+                                v-if="post.auth_user_feedback"
+                                class="text-gray-300 font-bold normal-case tracking-normal hidden md:inline"
+                            >
+                              — you chose: " {{ feedbackLabels[post.auth_user_feedback] }} "
+                            </span>
+                        </div>
+
+                        <Close
+                            @click="
+                                {
+                                    openScoreFeedbackId = null;
+                                }
+                            "
+                            :size="15"
+                            class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-2"
+                        />
+                    </div>
+                    <div class="flex items-center justify-evenly gap-2">
+                        <label
+                            v-for="value in feedbackValues"
+                            :key="value"
+                            class="group relative flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold cursor-pointer transition-all border"
+                            :class="
+                                post.auth_user_feedback === value
+                                    ? 'bg-black text-white border-black'
+                                    : 'bg-gray-50 text-gray-600 border-gray-100 hover:border-black'
+                            "
+                        >
+                            <input
+                                type="radio"
+                                :name="`feedback-${post.id}`"
+                                :value="value"
+                                class="hidden"
+                                @change="submitFeedback(post, value)"
+                            />
+                            {{ value }}
+
+                            <span
+                                class="absolute bottom-full mb-2 hidden group-hover:flex items-center justify-center bg-gray-900 text-white text-[10px] font-medium px-2 py-1 rounded shadow-md whitespace-nowrap pointer-events-none z-10 raw-css after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-gray-900"
+                            >
+                                {{ feedbackLabels[value] }}
+                            </span>
+                        </label>
+                    </div>
+                    <div
+                        class="flex justify-between text-[10px] mt-3 font-bold text-gray-300 mt-1 px-1"
+                    >
+                        <span>1 = mean you realy like that content</span>
+                        <span>10 = mean you realy dislike that content</span>
                     </div>
                 </div>
                 <div
@@ -880,6 +1008,7 @@ const deleteReminder = (postId) => {
                             </div>
                             <Close
                                 @click="toggleReminder(post.id)"
+                                :size="15"
                                 class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-2"
                             />
                         </div>
@@ -940,6 +1069,10 @@ const deleteReminder = (postId) => {
         @closeOverlay="openOverlay = false"
         @openReminder="
             toggleReminder($event);
+            openOverlay = false;
+        "
+        @openFeedbackScore="
+            toggleFeedBackScore($event);
             openOverlay = false;
         "
     />

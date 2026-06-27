@@ -10,6 +10,7 @@ use App\Http\Controllers\LikeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PostCircleShareController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\PostFeedbackController;
 use App\Http\Controllers\PostReminderController;
 use App\Http\Controllers\SavedPostController;
 use App\Http\Controllers\SearchController;
@@ -38,6 +39,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
     Route::delete('/posts/{id}', [PostController::class, 'destroy'])->name('posts.destroy');
+
+    // Post feedback (1/4/6/8/10 rating, feeds into the post owner's reach score)
+    Route::post('/posts/{post}/feedback', [PostFeedbackController::class, 'store'])->name('posts.feedback.store');
 
     Route::post('/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::delete('/comments/{id}', [CommentController::class, 'destroy'])->name('comments.destroy');

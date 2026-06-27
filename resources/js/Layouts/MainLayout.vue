@@ -222,7 +222,7 @@ const followUserById = (userId) => {
                     <button
                         class="text-blue-500 hover:text-gray-900 text-xs font-extrabold"
                     >
-                        Switch
+                        View
                     </button>
                 </Link>
 

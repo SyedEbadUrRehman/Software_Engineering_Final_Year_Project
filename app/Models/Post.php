@@ -6,6 +6,7 @@ use App\Models\Comment;
 use App\Models\FollowerPostShare;
 use App\Models\Like;
 use App\Models\PostCircleShare;
+use App\Models\PostFeedback;
 use App\Models\PostReminder;
 use App\Models\SavedPost;
 use App\Models\User;
@@ -65,5 +66,19 @@ class Post extends Model
             ->where('shared_by_id', auth()->id());
     }
 
+// All feedback rows for this post (used if you ever want a feedback list/avg per-post).
+    public function feedbacks()
+    {
+        return $this->hasMany(PostFeedback::class, 'post_id');
+    }
 
+// The CURRENTLY AUTHENTICATED user's own feedback on this post, if any.
+// Mirrors the same pattern as authUserFollowerShare() — a hasOne scoped to
+// auth()->id() so it can be eager-loaded with ->with(['authUserFeedback'])
+// in HomeController, avoiding an N+1 query per post when rendering the feed.
+    public function authUserFeedback()
+    {
+        return $this->hasOne(PostFeedback::class, 'post_id')
+            ->where('user_id', auth()->id());
+    }
 }

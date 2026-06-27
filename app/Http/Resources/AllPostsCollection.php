@@ -56,6 +56,22 @@ class AllPostsCollection extends ResourceCollection
                 'created_at'               => $post->created_at->format(' M D Y'),
                 // ✅ SOLVED: Checks the eager loaded relationship instead of running a raw DB query
                 'is_shared_with_followers' => $post->authUserFollowerShare !== null,
+
+                // ✅ Owner's current reach score (1=good...10=bad) and whether
+                // they have enough ratings for it to actually mean anything yet.
+                // Shown to the post owner so they understand why their reach
+                // may be throttled; harmless to show to anyone really, but the
+                // frontend only needs to render it for the owner's own posts.
+                'owner_score'               => (float) $post->user->owner_score,
+                'owner_score_count'         => (int) $post->user->owner_score_count,
+
+                // ✅ The CURRENTLY AUTHENTICATED user's own feedback on this
+                // post, if any (null if they haven't rated it, or if they are
+                // the post owner — owners can't rate their own posts).
+                // Relies on the `authUserFeedback` relation being eager loaded
+                // the same way `authUserFollowerShare` is, to avoid N+1s.
+                'auth_user_feedback'        => $post->authUserFeedback?->rating,
+
                 // ✅ Shared Circles Info
                 'shared_circles_count'     => $post->sharedCircles->count(),
 

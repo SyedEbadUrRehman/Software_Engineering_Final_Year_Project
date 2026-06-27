@@ -11,11 +11,12 @@ import Bookmark from "vue-material-design-icons/Bookmark.vue";
 import TimerPlusOutline from "vue-material-design-icons/TimerPlusOutline.vue";
 import ClipboardTextClockOutline from "vue-material-design-icons/ClipboardTextClockOutline.vue";
 import TimerCheckOutline from "vue-material-design-icons/TimerCheckOutline.vue";
+import MdiShieldStar from "vue-material-design-icons/ShieldStar.vue";
 
 const props = defineProps(["post"]);
 const { post } = toRefs(props);
 
-const emit = defineEmits(["like", "share", "comment", "saved", "reminder"]);
+const emit = defineEmits(["like", "share", "comment", "saved", "reminder","feedbackScore"]);
 
 const user = usePage().props.auth.user;
 
@@ -88,6 +89,12 @@ const userReminder = computed(() => {
                     title="Add Reminder"
                 />
             </button>
+            <MdiShieldStar
+                v-if="post.user.id !== user.id"
+                 @click="$emit('feedbackScore', post.id)"
+                class="pl-3 pt-[5px] cursor-pointer"
+                :size="27"
+            />
         </div>
 
         <!-- <BookmarkOutline class="pl-3 pt-[10px] cursor-pointer" :size="30" /> -->
