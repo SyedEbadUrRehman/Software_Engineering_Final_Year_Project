@@ -37,9 +37,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
     Route::post('/users', [UserController::class, 'update'])->name('users.update');
 
+    // Profile page additions
+    Route::put('/users/name', [UserController::class, 'updateName'])->name('users.name.update');
+    Route::put('/users/bio', [UserController::class, 'updateBio'])->name('users.bio.update');
+    Route::post('/users/two-factor', [UserController::class, 'toggleTwoFactor'])->name('users.two-factor.toggle');
+    Route::delete('/users/account', [UserController::class, 'destroyAccount'])->name('users.account.destroy');
+
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
     Route::delete('/posts/{id}', [PostController::class, 'destroy'])->name('posts.destroy');
-
     // Post feedback (1/4/6/8/10 rating, feeds into the post owner's reach score)
     Route::post('/posts/{post}/feedback', [PostFeedbackController::class, 'store'])->name('posts.feedback.store');
 
