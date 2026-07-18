@@ -121,10 +121,7 @@ class UserController extends Controller
         $user->name = $validated['name'];
         $user->save();
 
-        return response()->json([
-            'status' => 'ok',
-            'name'   => $user->name,
-        ]);
+        return back();
     }
 
     /**
@@ -140,10 +137,7 @@ class UserController extends Controller
         $user->bio = $validated['bio'];
         $user->save();
 
-        return response()->json([
-            'status' => 'ok',
-            'bio'    => $user->bio,
-        ]);
+        return back();
     }
 
     /**
@@ -160,10 +154,7 @@ class UserController extends Controller
         $user->two_factor_enabled = ! $user->two_factor_enabled;
         $user->save();
 
-        return response()->json([
-            'status'             => 'ok',
-            'two_factor_enabled' => $user->two_factor_enabled,
-        ]);
+        return back();
     }
 
     /**

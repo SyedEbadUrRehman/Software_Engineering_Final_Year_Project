@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             //
+            if (!Schema::hasColumn('users', 'bio')) {
                $table->text('bio')->nullable()->after('name');
  
             // UI-only toggle for now — no actual 2FA enforcement is wired
@@ -20,6 +21,7 @@ return new class extends Migration
             // the switch state so it doesn't reset on refresh once the
             // real flow is built later.
             $table->boolean('two_factor_enabled')->default(false)->after('bio');
+            }
         });
     }
 

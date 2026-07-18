@@ -14,6 +14,7 @@ use App\Http\Controllers\PostFeedbackController;
 use App\Http\Controllers\PostReminderController;
 use App\Http\Controllers\SavedPostController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/users/bio', [UserController::class, 'updateBio'])->name('users.bio.update');
     Route::post('/users/two-factor', [UserController::class, 'toggleTwoFactor'])->name('users.two-factor.toggle');
     Route::delete('/users/account', [UserController::class, 'destroyAccount'])->name('users.account.destroy');
+
+    // Active sessions (profile page "Active Sessions" section)
+    Route::get('/sessions', [SessionController::class, 'index'])->name('sessions.index');
+    Route::delete('/sessions/other', [SessionController::class, 'destroyOthers'])->name('sessions.destroyOthers');
 
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
     Route::delete('/posts/{id}', [PostController::class, 'destroy'])->name('posts.destroy');

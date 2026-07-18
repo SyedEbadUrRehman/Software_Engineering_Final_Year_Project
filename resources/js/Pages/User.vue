@@ -112,8 +112,7 @@ const followState = reactive({
     followersCount: props.followersCount,
 });
 
-const csrfToken = () =>
-    document.querySelector('meta[name="csrf-token"]').getAttribute("content");
+
 
 const toggleFollow = () => {
     const wasFollowing = followState.isFollowing;
@@ -124,21 +123,16 @@ const toggleFollow = () => {
     const url = wasFollowing
         ? `/users/${user.value.id}/unfollow`
         : `/users/${user.value.id}/follow`;
+    const method = wasFollowing ? "delete" : "post";
 
-    fetch(url, {
-        method: wasFollowing ? "DELETE" : "POST",
-        headers: { "X-CSRF-TOKEN": csrfToken(), Accept: "application/json" },
-    })
-        .then((res) => {
-            if (!res.ok) {
-                followState.isFollowing = wasFollowing;
-                followState.followersCount += wasFollowing ? 1 : -1;
-            }
-        })
-        .catch(() => {
+    router[method](url, {
+        preserveScroll: true,
+        preserveState: true,
+        onError: () => {
             followState.isFollowing = wasFollowing;
             followState.followersCount += wasFollowing ? 1 : -1;
-        });
+        },
+    });
 };
 
 /* ---------------------------------------------------------------------- */
@@ -172,27 +166,24 @@ const saveName = () => {
     nameEdit.saving = true;
     nameEdit.error = "";
 
-    fetch("/users/name", {
-        method: "PUT",
-        headers: {
-            "X-CSRF-TOKEN": csrfToken(),
-            "Content-Type": "application/json",
-            Accept: "application/json",
+    router.put(
+        "/users/name",
+        { name: nameEdit.value.trim() },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                // `user` is an Inertia page prop — it's refreshed automatically
+                // from the redirected response, no manual assignment needed.
+                nameEdit.active = false;
+            },
+            onError: (errors) => {
+                nameEdit.error =
+                    errors?.name || "Could not save name. Please try again.";
+            },
+            onFinish: () => (nameEdit.saving = false),
         },
-        body: JSON.stringify({ name: nameEdit.value.trim() }),
-    })
-        .then((res) => {
-            if (!res.ok) throw new Error();
-            return res.json();
-        })
-        .then((resData) => {
-            user.value.name = resData.name;
-            nameEdit.active = false;
-        })
-        .catch(() => {
-            nameEdit.error = "Could not save name. Please try again.";
-        })
-        .finally(() => (nameEdit.saving = false));
+    );
 };
 
 /* ---------------------------------------------------------------------- */
@@ -208,22 +199,19 @@ const bioForm = reactive({
 const saveBio = () => {
     bioForm.saving = true;
 
-    fetch("/users/bio", {
-        method: "PUT",
-        headers: {
-            "X-CSRF-TOKEN": csrfToken(),
-            "Content-Type": "application/json",
-            Accept: "application/json",
+    router.put(
+        "/users/bio",
+        { bio: bioForm.value },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                bioForm.savedFlash = true;
+                setTimeout(() => (bioForm.savedFlash = false), 1800);
+            },
+            onFinish: () => (bioForm.saving = false),
         },
-        body: JSON.stringify({ bio: bioForm.value }),
-    })
-        .then((res) => res.json())
-        .then((resData) => {
-            user.value.bio = resData.bio;
-            bioForm.savedFlash = true;
-            setTimeout(() => (bioForm.savedFlash = false), 1800);
-        })
-        .finally(() => (bioForm.saving = false));
+    );
 };
 
 /* ---------------------------------------------------------------------- */
@@ -240,18 +228,18 @@ const toggleTwoFactor = () => {
     twoFactor.enabled = !previous;
     twoFactor.saving = true;
 
-    fetch("/users/two-factor", {
-        method: "POST",
-        headers: { "X-CSRF-TOKEN": csrfToken(), Accept: "application/json" },
-    })
-        .then((res) => res.json())
-        .then((resData) => {
-            twoFactor.enabled = resData.two_factor_enabled;
-        })
-        .catch(() => {
-            twoFactor.enabled = previous;
-        })
-        .finally(() => (twoFactor.saving = false));
+    router.post(
+        "/users/two-factor",
+        {},
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: () => {
+                twoFactor.enabled = previous;
+            },
+            onFinish: () => (twoFactor.saving = false),
+        },
+    );
 };
 
 /* ---------------------------------------------------------------------- */
@@ -269,31 +257,137 @@ const submitDeleteAccount = () => {
     deleteForm.error = "";
     deleteForm.submitting = true;
 
-    fetch("/users/account", {
-        method: "DELETE",
-        headers: {
-            "X-CSRF-TOKEN": csrfToken(),
-            "Content-Type": "application/json",
-            Accept: "application/json",
+    router.delete("/users/account", {
+        data: { password: deleteForm.password },
+        onError: (errors) => {
+            deleteForm.error =
+                errors?.password || "Something went wrong. Please try again.";
         },
-        body: JSON.stringify({ password: deleteForm.password }),
+        onFinish: () => {
+            deleteForm.submitting = false;
+        },
+    });
+    // On success the server should redirect to a logged-out page (e.g. "/"
+    // or "/login"); Inertia follows that redirect for you automatically —
+    // no need to check res.redirected or set window.location.href.
+};
+
+/* ---------------------------------------------------------------------- */
+/* Change password — collapsible, closed by default. Reuses Breeze's      */
+/* existing Auth\PasswordController::update (PUT /password) via fetch()   */
+/* rather than a duplicate endpoint.                                      */
+/* ---------------------------------------------------------------------- */
+
+const passwordForm = reactive({
+    open: false,
+    current_password: "",
+    password: "",
+    password_confirmation: "",
+    saving: false,
+    success: false,
+    errors: {},
+});
+
+const submitPasswordChange = () => {
+    passwordForm.saving = true;
+    passwordForm.success = false;
+    passwordForm.errors = {};
+
+    router.put(
+        "/password",
+        {
+            current_password: passwordForm.current_password,
+            password: passwordForm.password,
+            password_confirmation: passwordForm.password_confirmation,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                passwordForm.success = true;
+                passwordForm.current_password = "";
+                passwordForm.password = "";
+                passwordForm.password_confirmation = "";
+                setTimeout(() => (passwordForm.success = false), 3000);
+            },
+            onError: (errors) => {
+                passwordForm.errors = errors;
+            },
+            onFinish: () => (passwordForm.saving = false),
+        },
+    );
+};
+
+/* ---------------------------------------------------------------------- */
+/* Active sessions — collapsible, closed by default. Lists sessions from  */
+/* the `sessions` table (SESSION_DRIVER=database) and lets the owner log  */
+/* every other device out.                                                */
+/* ---------------------------------------------------------------------- */
+
+const sessionsPanel = reactive({
+    open: false,
+    loading: false,
+    loaded: false,
+    items: [],
+    error: "",
+    loggingOutOthers: false,
+    loggedOutMessage: "",
+});
+
+// This stays on fetch rather than Inertia's router: it's a plain read-only
+// JSON fetch for a sub-panel, not a page visit, and Inertia's router is
+// built around visiting/reloading a page's props, not ad-hoc GETs like
+// this. That's fine here because GET requests aren't subject to Laravel's
+// CSRF check to begin with (only POST/PUT/PATCH/DELETE are) — the 419s
+// you were seeing only ever came from the state-changing calls above.
+const loadSessions = () => {
+    sessionsPanel.loading = true;
+    sessionsPanel.error = "";
+
+    fetch("/sessions", {
+        headers: { Accept: "application/json" },
     })
         .then((res) => {
-            if (res.redirected) {
-                window.location.href = res.url;
-                return;
-            }
-            if (!res.ok) {
-                return res.json().then((body) => {
-                    deleteForm.error =
-                        body?.errors?.password?.[0] ||
-                        "Something went wrong. Please try again.";
-                });
-            }
+            if (!res.ok) throw new Error();
+            return res.json();
         })
-        .finally(() => {
-            deleteForm.submitting = false;
-        });
+        .then((resData) => {
+            sessionsPanel.items = resData.sessions;
+            sessionsPanel.loaded = true;
+        })
+        .catch(() => {
+            sessionsPanel.error = "Could not load sessions. Please try again.";
+        })
+        .finally(() => (sessionsPanel.loading = false));
+};
+
+const toggleSessionsPanel = () => {
+    sessionsPanel.open = !sessionsPanel.open;
+    if (sessionsPanel.open && !sessionsPanel.loaded) {
+        loadSessions();
+    }
+};
+
+const logoutOtherDevices = () => {
+    sessionsPanel.loggingOutOthers = true;
+    sessionsPanel.loggedOutMessage = "";
+    sessionsPanel.error = "";
+
+    router.delete("/sessions/other", {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            sessionsPanel.items = sessionsPanel.items.filter(
+                (s) => s.is_current_device,
+            );
+            sessionsPanel.loggedOutMessage =
+                "All other devices have been logged out.";
+        },
+        onError: () => {
+            sessionsPanel.error =
+                "Could not log out other devices. Please try again.";
+        },
+        onFinish: () => (sessionsPanel.loggingOutOthers = false),
+    });
 };
 </script>
 
@@ -986,6 +1080,231 @@ const submitDeleteAccount = () => {
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================================================================
+             CHANGE PASSWORD — collapsible, closed by default. Submits via
+             fetch() to Breeze's existing PUT /password route.
+        ================================================================== -->
+        <div
+            v-if="isOwner"
+            class="max-w-[880px] lg:ml-0 md:ml-[80px] md:pl-20 px-4 w-full mt-6"
+        >
+            <div
+                class="rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_8px_30px_rgba(59,130,246,0.08)] p-5 md:p-7"
+            >
+                <button
+                    type="button"
+                    @click="passwordForm.open = !passwordForm.open"
+                    class="w-full flex items-center justify-between gap-2"
+                >
+                    <h2
+                        class="text-sm font-black text-black uppercase tracking-wide flex items-center gap-2"
+                    >
+                        <svg viewBox="0 0 24 24" class="w-4 h-4 fill-sky-500">
+                            <path
+                                d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 1 1 6 0v3H9zm3 4a2 2 0 0 1 1 3.73V19h-2v-2.27A2 2 0 0 1 12 13z"
+                            />
+                        </svg>
+                        Change Password
+                    </h2>
+                    <svg
+                        viewBox="0 0 24 24"
+                        class="w-5 h-5 fill-gray-400 transition-transform shrink-0"
+                        :class="passwordForm.open ? 'rotate-180' : ''"
+                    >
+                        <path d="M7 10l5 5 5-5z" />
+                    </svg>
+                </button>
+
+                <div v-if="passwordForm.open" class="mt-5 space-y-3">
+                    <div>
+                        <label
+                            class="text-xs font-bold text-gray-400 uppercase tracking-wide"
+                            >Current Password</label
+                        >
+                        <input
+                            v-model="passwordForm.current_password"
+                            type="password"
+                            autocomplete="current-password"
+                            class="mt-2 w-full rounded-2xl border border-sky-100 bg-white/70 p-3 text-sm text-black focus:outline-none focus:ring-2 focus:ring-sky-300"
+                        />
+                        <p
+                            v-if="passwordForm.errors.current_password"
+                            class="text-xs text-red-500 mt-1"
+                        >
+                            {{ passwordForm.errors.current_password }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label
+                            class="text-xs font-bold text-gray-400 uppercase tracking-wide"
+                            >New Password</label
+                        >
+                        <input
+                            v-model="passwordForm.password"
+                            type="password"
+                            autocomplete="new-password"
+                            class="mt-2 w-full rounded-2xl border border-sky-100 bg-white/70 p-3 text-sm text-black focus:outline-none focus:ring-2 focus:ring-sky-300"
+                        />
+                        <p
+                            v-if="passwordForm.errors.password"
+                            class="text-xs text-red-500 mt-1"
+                        >
+                            {{ passwordForm.errors.password }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label
+                            class="text-xs font-bold text-gray-400 uppercase tracking-wide"
+                            >Confirm New Password</label
+                        >
+                        <input
+                            v-model="passwordForm.password_confirmation"
+                            type="password"
+                            autocomplete="new-password"
+                            class="mt-2 w-full rounded-2xl border border-sky-100 bg-white/70 p-3 text-sm text-black focus:outline-none focus:ring-2 focus:ring-sky-300"
+                        />
+                    </div>
+
+                    <p
+                        v-if="passwordForm.errors.general"
+                        class="text-xs text-red-500"
+                    >
+                        {{ passwordForm.errors.general[0] }}
+                    </p>
+
+                    <div class="flex items-center justify-between pt-1">
+                        <span
+                            v-if="passwordForm.success"
+                            class="text-xs font-bold text-emerald-500"
+                            >Password updated ✓</span
+                        >
+                        <span v-else></span>
+                        <button
+                            @click="submitPasswordChange"
+                            :disabled="passwordForm.saving"
+                            class="px-4 py-1.5 rounded-xl text-sm font-bold bg-gradient-to-r from-sky-400 to-blue-500 text-white hover:from-sky-500 hover:to-blue-600 disabled:opacity-50 transition-all"
+                        >
+                            {{
+                                passwordForm.saving
+                                    ? "Saving..."
+                                    : "Update Password"
+                            }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================================================================
+             ACTIVE SESSIONS — collapsible, closed by default. Lists rows
+             from the `sessions` table and can log out all other devices.
+        ================================================================== -->
+        <div
+            v-if="isOwner"
+            class="max-w-[880px] lg:ml-0 md:ml-[80px] md:pl-20 px-4 w-full mt-6"
+        >
+            <div
+                class="rounded-3xl border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_8px_30px_rgba(59,130,246,0.08)] p-5 md:p-7"
+            >
+                <button
+                    type="button"
+                    @click="toggleSessionsPanel"
+                    class="w-full flex items-center justify-between gap-2"
+                >
+                    <h2
+                        class="text-sm font-black text-black uppercase tracking-wide flex items-center gap-2"
+                    >
+                        <svg viewBox="0 0 24 24" class="w-4 h-4 fill-sky-500">
+                            <path
+                                d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6l1 2h2v2H7v-2h2l1-2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v9h16V6H4z"
+                            />
+                        </svg>
+                        Active Sessions
+                    </h2>
+                    <svg
+                        viewBox="0 0 24 24"
+                        class="w-5 h-5 fill-gray-400 transition-transform shrink-0"
+                        :class="sessionsPanel.open ? 'rotate-180' : ''"
+                    >
+                        <path d="M7 10l5 5 5-5z" />
+                    </svg>
+                </button>
+
+                <div v-if="sessionsPanel.open" class="mt-5 space-y-3">
+                    <p
+                        v-if="sessionsPanel.loading"
+                        class="text-xs text-gray-400"
+                    >
+                        Loading sessions...
+                    </p>
+                    <p
+                        v-if="sessionsPanel.error"
+                        class="text-xs text-red-500"
+                    >
+                        {{ sessionsPanel.error }}
+                    </p>
+
+                    <div
+                        v-if="!sessionsPanel.loading && sessionsPanel.items.length"
+                        class="space-y-2"
+                    >
+                        <div
+                            v-for="s in sessionsPanel.items"
+                            :key="s.id"
+                            class="rounded-2xl border border-sky-100 bg-sky-50/60 p-3 flex items-center justify-between gap-3"
+                        >
+                            <div class="min-w-0">
+                                <div
+                                    class="text-sm font-bold text-black flex items-center gap-2 flex-wrap"
+                                >
+                                    {{ s.browser }} on {{ s.platform }}
+                                    <span
+                                        v-if="s.is_current_device"
+                                        class="text-[10px] font-bold text-sky-500 bg-sky-100 px-2 py-0.5 rounded-full"
+                                        >This device</span
+                                    >
+                                </div>
+                                <div class="text-xs text-gray-400 truncate">
+                                    {{ s.ip_address }} · {{ s.last_active }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p
+                        v-else-if="!sessionsPanel.loading && !sessionsPanel.error"
+                        class="text-xs text-gray-400"
+                    >
+                        No active sessions found.
+                    </p>
+
+                    <p
+                        v-if="sessionsPanel.loggedOutMessage"
+                        class="text-xs font-bold text-emerald-500"
+                    >
+                        {{ sessionsPanel.loggedOutMessage }}
+                    </p>
+
+                    <button
+                        @click="logoutOtherDevices"
+                        :disabled="
+                            sessionsPanel.loggingOutOthers ||
+                            sessionsPanel.items.length <= 1
+                        "
+                        class="w-full py-2 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
+                    >
+                        {{
+                            sessionsPanel.loggingOutOthers
+                                ? "Logging out..."
+                                : "Log out from all other devices"
+                        }}
+                    </button>
                 </div>
             </div>
         </div>
