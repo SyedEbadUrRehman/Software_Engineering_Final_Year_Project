@@ -17,6 +17,8 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -28,7 +30,9 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
-
+ Route::get('/home', function () {
+        return inertia::render('Index');
+    });
 Route::middleware('auth')->group(function () {
     Route::get('/a', function () {
         return view('welcome');

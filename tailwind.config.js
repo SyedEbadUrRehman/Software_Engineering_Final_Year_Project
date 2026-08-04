@@ -13,6 +13,8 @@ module.exports = {
         extend: {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                handwriting: ['Caveat', 'cursive'],
+                headingfont:['system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],
             },
         },
     },
