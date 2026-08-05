@@ -155,6 +155,10 @@ onMounted(() => {
         .listen(".content.moderated", (e) => {
             handleModerationUpdate(e);
         })
+        // NEW: Listen for URL updates on my own posts
+        .listen(".post.url.updated", (e) => {
+            handleUrlUpdate(e);
+        })
         .listen(".follower.post.shared", (e) => {
             // Find if the post already exists in this user's current feed array
             const existingPostIndex = posts.value.data.findIndex(
@@ -285,6 +289,10 @@ onMounted(() => {
                 })
                 .listen(".content.moderated", (e) => {
                     handleModerationUpdate(e);
+                })
+                // NEW: Listen for URL updates on shared posts
+                .listen(".post.url.updated", (e) => {
+                    handleUrlUpdate(e);
                 })
                 .error((error) => {
                     console.error("Channel Error:", error);
@@ -741,6 +749,20 @@ console.log(urls)
         window.open(finalUrl, '_blank');
     });
 };
+// --- HELPER FUNCTION: Update URL ---
+const handleUrlUpdate = (eventData) => {
+    const post = posts.value.data.find((p) => p.id === eventData.postId);
+
+    if (post) {
+        post.url = eventData.url;
+    }
+
+    // Also update the overlay if it is currently open
+    if (currentPost.value && currentPost.value.id === eventData.postId) {
+        currentPost.value.url = eventData.url;
+    }
+};
+
 </script>
 
 <template>
@@ -748,7 +770,7 @@ console.log(urls)
 
     <MainLayout>
         <div class="mx-auto lg:pl-0 md:pl-[80px] pl-0">
-            <Carousel
+            <!-- <Carousel
                 v-model="currentSlide"
                 class="max-w-[700px] mx-auto"
                 :items-to-show="wWidth >= 768 ? 8 : 6"
@@ -784,8 +806,10 @@ console.log(urls)
                 <template #addons>
                     <Navigation />
                 </template>
-            </Carousel>
-
+            </Carousel> -->
+  <div class=" sm:text-left bg-white px-4 mb-6 border-b border-gray-200 pb-4">
+                <div class="text-3xl font-extrabold">Home Feeds</div>
+            </div>
             <div
                 class="px-4 max-w-[600px] mx-auto mt-10 relative overflow-hidden"
                 v-for="post in posts.data"
@@ -795,7 +819,7 @@ console.log(urls)
                 <div
                     v-if="user.id === post.user.id"
                     @click="addURLReqFun(post.id)"
-                    class="absolute cursor-pointer -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#aa4cffe0] text-white text-2xl z-10 shadow-md"
+                    class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#aa4cffe0] text-white text-2xl z-10 shadow-md"
                 >
                     +
                 </div>

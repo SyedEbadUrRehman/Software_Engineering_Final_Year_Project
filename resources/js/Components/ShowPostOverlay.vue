@@ -79,7 +79,7 @@ const textareaInput = (e) => {
                         :src="post.file"
                     />   -->
                     <img
-                        class="rounded-xl min-w-[400px] p-4 mx-auto"
+                        class="rounded-xl w-full md:min-w-[400px] p-4 mx-auto"
                         src="/commentTemplate.PNG"
                     />
                 </div>

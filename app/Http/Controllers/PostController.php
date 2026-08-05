@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Events\PostCreated;
@@ -22,9 +23,9 @@ class PostController extends Controller
         // $post = (new FileService)->updateFile($post, $request, 'post');
 
         $post->user_id = auth()->user()->id;
-        $post->text    = $request->input('text');
-        $post->url     = $request->input('url');
-        $post->status  = 'pending'; // Set explicitly
+        $post->text = $request->input('text');
+        $post->url = $request->input('url');
+        $post->status = 'pending'; // Set explicitly
         $post->save();
 
         // --- REAL TIME: POST CREATED ---
@@ -36,7 +37,8 @@ class PostController extends Controller
         // 3. Send to Moderation Queue
         ModerateContentJob::dispatch($post, 'post');
     }
-/**
+
+    /**
      * Append a new URL to an existing post.
      */
     public function updateUrl(Request $request, $id)
@@ -55,16 +57,20 @@ class PostController extends Controller
         $newUrl = trim($request->input('new_url'));
 
         // Append with a pipe if a URL already exists, otherwise just set it
-        if (!empty($post->url)) {
-            $post->url = $post->url . ' | ' . $newUrl;
+        if (! empty($post->url)) {
+            $post->url = $post->url.' | '.$newUrl;
         } else {
             $post->url = $newUrl;
         }
 
         $post->save();
+        // --- NEW: REAL-TIME BROADCAST ---
+        $circleIds = $post->sharedCircles()->pluck('circles.id')->toArray();
+        broadcast(new \App\Events\PostUrlUpdated($post->id, $post->url, $post->user_id, $circleIds));
 
         return redirect()->back()->with('success', 'URL appended successfully!');
     }
+
     /**
      * Remove the specified resource from storage.
      */
@@ -85,7 +91,7 @@ class PostController extends Controller
         broadcast(new PostDeleted($post->id, $post->user_id, $sharedCircleIds))->toOthers();
 
         if (! empty($post->file)) {
-            $currentFile = public_path() . $post->file;
+            $currentFile = public_path().$post->file;
 
             if (file_exists($currentFile)) {
                 unlink($currentFile);

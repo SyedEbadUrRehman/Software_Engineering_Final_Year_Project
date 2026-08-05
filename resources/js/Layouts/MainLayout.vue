@@ -182,7 +182,7 @@ const followUserById = (userId) => {
             <div
                 class="mx-auto md:pt-6 pt-20"
                 :class="
-                    $page.url === '/index' ? 'lg:w-8/12 w-full' : 'max-w-[1200px]'
+                   ( $page.url.includes('/index')) ? 'lg:w-8/12 w-full' : 'max-w-[1200px]'
                 "
             >
                 <main>
