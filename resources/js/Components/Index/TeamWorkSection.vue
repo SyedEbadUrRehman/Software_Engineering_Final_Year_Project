@@ -1,7 +1,7 @@
 <script setup>
 import { ref  } from 'vue';
 import { useScrollIconText } from '../../composables/useScrollIconText';
-
+import { Link } from "@inertiajs/vue3";
 
 
 const sectionRef = ref(null);
@@ -14,7 +14,7 @@ useScrollIconText(sectionRef, {
 
 </script>
 <template>
-    <section ref="sectionRef" class="relative w-full overflow-hidden bg-white">
+    <section ref="sectionRef" class="relative w-full overflow-hidden bg-white" id="using-siteclip">
         <div class="gsap-item relative max-w-7xl mx-auto px-6 pt-20 pb-28 sm:pt-24 sm:pb-32 lg:pt-28 lg:pb-36">
 
             <!-- Floating avatars: left side -->
@@ -102,10 +102,10 @@ useScrollIconText(sectionRef, {
 
                 <!-- CTAs -->
                 <div class="gsap-text flex flex-col sm:flex-row items-center gap-3">
-                    <button
+                    <Link :href="route('home.index')"
                         class="btn btn-primary">
                       Lets Collaborate
-                    </button>
+                    </Link>
                    
                 </div>
             </div>

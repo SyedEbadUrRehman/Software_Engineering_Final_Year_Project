@@ -3,6 +3,7 @@
 import { h,ref } from 'vue'
 import FolderIntegrationCard from './FolderIntegrationCard.vue'
 import { useScrollIconText } from '../../composables/useScrollIconText';
+import { Link } from "@inertiajs/vue3";
 // tiny inline clock icon used inside the reminder card
 const ClockIcon = () =>
   h(
@@ -42,7 +43,7 @@ useScrollIconText(sectionRef, {
       <!-- Sticky note -->
       <div class="prop sticky-note rounded-none " :style="floatStyle(0)">
         <span class="pin " aria-hidden="true"></span>
-        <p class="gsap-para font-handwriting">Take notes to keep track of crucial details, and accomplish more tasks with ease.</p>
+        <p class="gsap-para font-handwriting">Take clip to keep track of crucial details, and explore more dgital world with an ease.</p>
       </div>
 
       <!-- Checklist app icon -->
@@ -106,7 +107,7 @@ useScrollIconText(sectionRef, {
       </h1>
       <p class="subtext gsap-para">Efficiently manage your ideas and boost productivity.</p>
       <div class="cta-row gsap-text">
-        <button class="btn primary">Get started free</button>
+        <Link :href="route('home.index')" class="btn primary">Get started free</Link>
         <!-- <button class="btn ghost">See how it works</button> -->
       </div>
     </div>
@@ -231,7 +232,7 @@ useScrollIconText(sectionRef, {
 
 .sticky-note p {
   margin: 0;
-  font-size: 18.5px;
+  font-size: 17.2px;
   line-height: 1.5;
   font-weight: 500;
   color: #000000;

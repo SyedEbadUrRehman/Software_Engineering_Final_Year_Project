@@ -115,9 +115,7 @@
         0 12px 30px rgba(79, 200, 255, 0.35),
         0 4px 10px rgba(37, 183, 255, 0.2);
 }
-.btn:active {
-    transform: scale(0.97) !important;
-}
+
 .btn-primary:hover {
     transform: translateY(-3px);
 
@@ -224,4 +222,9 @@
 
 .btn-pill:hover::after {
     border-color: rgba(255, 255, 255, 0.95);
+}
+@media screen and (width > 1024px) {
+    .btn:active {
+        transform: scale(0.97) !important;
+    }
 }

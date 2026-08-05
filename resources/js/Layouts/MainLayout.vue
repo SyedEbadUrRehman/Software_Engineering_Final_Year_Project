@@ -51,12 +51,12 @@ const followUserById = (userId) => {
 <template>
     <div id="MainLayout" class="w-full h-screen">
         <div
-            v-if="$page.url === '/'"
+            v-if="$page.url === '/index'"
             id="TopNavHome"
             class="fixed z-30 md:hidden block w-full bg-white h-[61px] border-b border-b-gray-300"
         >
             <div class="flex items-center justify-between h-full">
-                <Link href="/">
+                <Link :href="route('home.index')">
                     <img
                         class="w-[100px] ml-6 cursor-pointer"
                         src="/SiteClipLogo.png"
@@ -93,11 +93,11 @@ const followUserById = (userId) => {
         </div>
 
         <div
-            v-if="$page.url !== '/'"
+            v-if="$page.url !== '/index'"
             id="TopNavUser"
             class="md:hidden fixed flex items-center justify-between z-30 w-full bg-white h-[61px] border-b border-b-gray-300"
         >
-            <Link href="/" class="px-4">
+            <Link :href="route('home.index')" class="px-4">
                 <ChevronLeft :size="30" class="cursor-pointer" />
             </Link>
             <div class="font-extrabold text-lg">
@@ -110,7 +110,7 @@ const followUserById = (userId) => {
             id="SideNav"
             class="fixed h-full bg-white xl:w-[280px] w-[80px] md:block hidden border-r border-r-gray-300"
         >
-            <Link href="/">
+            <Link :href="route('home.index')">
                 <img
                     class="xl:hidden block w-[60px] mt-10 ml-[5px] mb-10 cursor-pointer"
                     src="/SiteClipLogo.png"
@@ -122,7 +122,7 @@ const followUserById = (userId) => {
             </Link>
 
             <div class="px-3">
-                <Link href="/">
+                <Link :href="route('home.index')">
                     <MenuItem iconString="Home" class="mb-4" />
                 </Link>
                 <Link :href="route('search.index')">
@@ -182,7 +182,7 @@ const followUserById = (userId) => {
             <div
                 class="mx-auto md:pt-6 pt-20"
                 :class="
-                    $page.url === '/' ? 'lg:w-8/12 w-full' : 'max-w-[1200px]'
+                    $page.url === '/index' ? 'lg:w-8/12 w-full' : 'max-w-[1200px]'
                 "
             >
                 <main>
@@ -292,7 +292,7 @@ const followUserById = (userId) => {
             id="BottomNav"
             class="fixed z-30 bottom-0 w-full md:hidden flex items-center justify-around bg-white border-t py-2 border-t-gray-300"
         >
-            <Link href="/">
+            <Link :href="route('home.index')">
                 <HomeOutline
                     fillColor="#000000"
                     :size="33"

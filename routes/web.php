@@ -30,14 +30,17 @@ use Inertia\Inertia;
 | contains the "web" middleware group. Now create something great!
 |
 */
- Route::get('/home', function () {
+ Route::get('/', function () {
         return inertia::render('Index');
     });
+Route::get('/privacy-policy', function () {
+    return Inertia::render('PrivacyPolicy');
+})->name('privacy.policy');
 Route::middleware('auth')->group(function () {
     Route::get('/a', function () {
         return view('welcome');
     });
-    Route::get('/', [HomeController::class, 'index'])->name('home.index');
+    Route::get('/index', [HomeController::class, 'index'])->name('home.index');
 
     Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
     Route::post('/users', [UserController::class, 'update'])->name('users.update');

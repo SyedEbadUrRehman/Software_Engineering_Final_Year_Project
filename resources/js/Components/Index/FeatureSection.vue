@@ -61,7 +61,7 @@ const cards = [
 <template>
 
 
-    <section ref="sectionRef" class="relative w-full bg-white overflow-hidden py-20 px-6">
+    <section ref="sectionRef" class="relative w-full bg-white overflow-hidden py-20 px-6" id="how-it-works">
         <!-- decorative gradient blob -->
         <div
             class="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full bg-gradient-to-br from-gray-200/60 to-transparent blur-3xl">

@@ -3,7 +3,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useScrollIconText } from '../../composables/useScrollIconText';
-
+import { Link } from "@inertiajs/vue3";
 /* ---- generic decorative icons (not brand logos) ---- */
 const Icon1 = `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.6" fill="#EF4444"/><rect x="11" y="1" width="6" height="6" rx="1.6" fill="#F59E0B"/><rect x="1" y="11" width="6" height="6" rx="1.6" fill="#10B981"/><rect x="11" y="11" width="6" height="6" rx="1.6" fill="#3B82F6"/></svg>`;
 const Icon2 = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><g stroke="#16A34A" stroke-width="2.2" stroke-linecap="round"><path d="M12 3V21"/><path d="M4.5 7.5L19.5 16.5"/><path d="M19.5 7.5L4.5 16.5"/></g></svg>`;
@@ -68,7 +68,7 @@ useScrollIconText(sectionRef, {
 <template>
 
 
-  <section ref="sectionRef" class="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 lg:p-10">
+  <section ref="sectionRef" class="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 lg:p-10" id="collaboration">
     <div
       class="relative w-full max-w-6xl bg-white rounded-[24px] sm:rounded-[32px] shadow-[0_4px_28px_rgba(0,0,0,0.06)] overflow-hidden">
 
@@ -121,9 +121,9 @@ useScrollIconText(sectionRef, {
 
           <!-- CTAs -->
           <div class="gsap-text flex flex-col sm:flex-row items-center justify-center gap-3 mb-14">
-            <button
+            <Link :href="route('home.index')"
               class=" cta-btn cursor-pointer bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-full px-5 py-3 w-full sm:w-auto">Get
-              started now</button>
+              started now</Link>
           </div>
 
 
