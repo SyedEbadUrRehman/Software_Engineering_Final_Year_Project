@@ -36,7 +36,35 @@ class PostController extends Controller
         // 3. Send to Moderation Queue
         ModerateContentJob::dispatch($post, 'post');
     }
+/**
+     * Append a new URL to an existing post.
+     */
+    public function updateUrl(Request $request, $id)
+    {
+        $request->validate([
+            'new_url' => 'required|string',
+        ]);
 
+        $post = Post::findOrFail($id);
+
+        // Security check: Only the post owner can update the URL
+        if ($post->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $newUrl = trim($request->input('new_url'));
+
+        // Append with a pipe if a URL already exists, otherwise just set it
+        if (!empty($post->url)) {
+            $post->url = $post->url . ' | ' . $newUrl;
+        } else {
+            $post->url = $newUrl;
+        }
+
+        $post->save();
+
+        return redirect()->back()->with('success', 'URL appended successfully!');
+    }
     /**
      * Remove the specified resource from storage.
      */

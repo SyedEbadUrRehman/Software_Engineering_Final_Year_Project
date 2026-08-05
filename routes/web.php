@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
     Route::delete('/posts/{id}', [PostController::class, 'destroy'])->name('posts.destroy');
+    Route::put('/posts/{post}/url', [\App\Http\Controllers\PostController::class, 'updateUrl'])->name('posts.updateUrl');
     // Post feedback (1/4/6/8/10 rating, feeds into the post owner's reach score)
     Route::post('/posts/{post}/feedback', [PostFeedbackController::class, 'store'])->name('posts.feedback.store');
 

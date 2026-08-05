@@ -25,6 +25,9 @@ const openShareId = ref(null); // Tracks which post ID has the share div open
 const openReminderId = ref(null); // Tracks which post ID has the reminder div open
 const openScoreFeedbackId = ref(null); // Tracks which post ID has the reminder div open
 const reminderDate = ref("");
+// --- NEW: URL Upgrade State ---
+const upgradeUrlPostId = ref(null);
+const newUpgradeUrl = ref("");
 
 const user = usePage().props.auth.user;
 const props = defineProps({
@@ -120,6 +123,12 @@ const handleModerationUpdate = (eventData) => {
 };
 
 onMounted(() => {
+    // NEW: Listen for the URL coming back from the extension
+    window.addEventListener("message", (event) => {
+        if (event.data && event.data.type === "tab_info_for_upgrade") {
+            newUpgradeUrl.value = event.data.url;
+        }
+    });
     // 1. MY USER CHANNEL
     window.Echo.private(`App.Models.User.${user.id}`)
         // A. Post Created (Sync other tabs)
@@ -681,6 +690,57 @@ const deleteReminder = (postId) => {
         },
     });
 };
+// upgrade url fun logic
+const addURLReqFun = (postId) => {
+    // 1. Save the ID of the post we want to update
+    upgradeUrlPostId.value = postId;
+    // 2. Ask the extension for the active tab's URL
+    window.parent.postMessage("request_tab_info_for_upgrade_url", "*");
+};
+
+const clearUpgradeUrl = () => {
+    upgradeUrlPostId.value = null;
+    newUpgradeUrl.value = "";
+};
+
+
+const submitUrlUpdate = (postId) => {
+    router.put(`/posts/${postId}/url`, { new_url: newUpgradeUrl.value }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            // Optimistically update the post array in the UI instantly
+            // const targetPost = posts.value.data.find((p) => p.id === postId);
+            // if (targetPost) {
+            //     if (targetPost.url) {
+            //         targetPost.url = targetPost.url + ' | ' + newUpgradeUrl.value;
+            //     } else {
+            //         targetPost.url = newUpgradeUrl.value;
+            //     }
+            // }
+            
+            // Close the glassy badge
+            clearUpgradeUrl();
+        }
+    });
+};
+// --- NEW: Open all piped URLs in different tabs ---
+const openAllUrls = (urlString) => {
+    if (!urlString) return;
+
+    // Split the string by '|', remove extra spaces, and filter out any empty ones
+    const urls = urlString.split('|').map(url => url.trim()).filter(url => url !== "");
+console.log(urls)
+    urls.forEach(url => {
+        // Safety check: ensure the URL starts with http:// or https:// so it doesn't break routing
+        let finalUrl = url;
+        if (!/^https?:\/\//i.test(finalUrl)) {
+            finalUrl = 'http://' + finalUrl;
+        }
+
+        // Open in a new tab
+        window.open(finalUrl, '_blank');
+    });
+};
 </script>
 
 <template>
@@ -727,11 +787,18 @@ const deleteReminder = (postId) => {
             </Carousel>
 
             <div
-                class="px-4 max-w-[600px] mx-auto mt-10"
+                class="px-4 max-w-[600px] mx-auto mt-10 relative overflow-hidden"
                 v-for="post in posts.data"
                 :key="post.id"
                 :id="post.id"
             >
+                <div
+                    v-if="user.id === post.user.id"
+                    @click="addURLReqFun(post.id)"
+                    class="absolute cursor-pointer -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#aa4cffe0] text-white text-2xl z-10 shadow-md"
+                >
+                    +
+                </div>
                 <div class="flex items-center justify-between py-2">
                     <div class="flex items-center">
                         <Link
@@ -786,14 +853,18 @@ const deleteReminder = (postId) => {
                     <div class="text-lg my-4">
                         {{ post.text }}
                     </div>
-                    <a
-                        :href="post.url"
-                        class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
-                        target="blank"
-                    >
-                        <div>Visit Site</div>
-                        <ArrowRight :size="22" />
-                    </a>
+                    <!-- Single Button to open one or multiple URLs -->
+                    <div v-if="post.url" class="my-4">
+                        <div
+                            @click="openAllUrls(post.url)"
+                            class="flex gap-2 items-center text-lg text-blue-500 hover:text-gray-900 cursor-pointer w-max"
+                        >
+                            <div>
+                                Visit Site{{ post.url.includes('|') ? 's (' + post.url.split('|').length + ')' : '' }}
+                            </div>
+                            <ArrowRight :size="22" />
+                        </div>
+                    </div>
 
                     <!-- <div class="bg-black rounded-lg w-full min-h-[400px] flex items-center">
                     <img class="mx-auto w-full" :src="post.file" />
@@ -835,7 +906,35 @@ const deleteReminder = (postId) => {
                         </button>
                     </div>
                 </div>
-
+                <!-- NEW: Glassy URL Upgrade Badge -->
+                <div
+                    v-if="upgradeUrlPostId === post.id && newUpgradeUrl"
+                    class="my-3 p-3 backdrop-blur-md bg-white/40 border border-white/50 shadow-lg rounded-xl flex flex-col gap-3 relative transition-all z-10"
+                >
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex flex-col overflow-hidden">
+                            <span
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest"
+                                >Upgrade URL :</span
+                            >
+                            <span
+                                class="text-sm font-semibold text-blue-600 truncate"
+                                >{{ newUpgradeUrl }}</span
+                            >
+                        </div>
+                        <Close
+                            @click="clearUpgradeUrl"
+                            :size="18"
+                            class="cursor-pointer text-gray-500 hover:text-red-500 p-1 bg-white/80 rounded-full shadow-sm shrink-0"
+                        />
+                    </div>
+                    <button
+                        @click="submitUrlUpdate(post.id)"
+                        class="bg-black text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition active:scale-95"
+                    >
+                        Confirm & Update URL
+                    </button>
+                </div>
                 <!-- Feedback widget: shown to everyone EXCEPT the post owner.
                      One rating per user per post, but editable — if the user
                      has already rated, their existing choice is pre-selected
@@ -849,12 +948,13 @@ const deleteReminder = (postId) => {
                         <div
                             class="text-[10px] font-black text-gray-800 uppercase tracking-widest mb-2"
                         >
-                           Share your thoughts
+                            Share your thoughts
                             <span
                                 v-if="post.auth_user_feedback"
                                 class="text-gray-300 font-bold normal-case tracking-normal hidden md:inline"
                             >
-                              — you chose: " {{ feedbackLabels[post.auth_user_feedback] }} "
+                                — you chose: "
+                                {{ feedbackLabels[post.auth_user_feedback] }} "
                             </span>
                         </div>
 
