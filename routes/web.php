@@ -40,7 +40,7 @@ Route::get('/privacy-policy', function () {
 
 // Main Group: Protected by 'auth' and '2fa' middlewares
 
-Route::middleware(['auth', '2fa'])->group(function () {
+Route::middleware(['auth', 'verified','2fa'])->group(function () {
 
     // ------------------------------------------------------------------
     // General Routes
