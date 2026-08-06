@@ -36,89 +36,123 @@ use Inertia\Inertia;
 Route::get('/privacy-policy', function () {
     return Inertia::render('PrivacyPolicy');
 })->name('privacy.policy');
-Route::middleware('auth')->group(function () {
-    Route::get('/a', function () {
-        return view('welcome');
-    });
+
+
+// Main Group: Protected by 'auth' and '2fa' middlewares
+
+Route::middleware(['auth', '2fa'])->group(function () {
+
+    // ------------------------------------------------------------------
+    // General Routes
+    // ------------------------------------------------------------------
+    Route::get('/a', fn() => view('welcome'));
     Route::get('/index', [HomeController::class, 'index'])->name('home.index');
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
+    Route::get('/follow', [FollowController::class, 'index'])->name('follow.index');
 
-    Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
-    Route::post('/users', [UserController::class, 'update'])->name('users.update');
+    // ------------------------------------------------------------------
+    // Users & Profiles (`/users`)
+    // ------------------------------------------------------------------
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::controller(UserController::class)->group(function () {
+            Route::get('/{id}', 'show')->name('show');
+            Route::post('/', 'update')->name('update');
+            Route::put('/name', 'updateName')->name('name.update');
+            Route::put('/bio', 'updateBio')->name('bio.update');
+            Route::post('/two-factor', 'toggleTwoFactor')->name('two-factor.toggle');
+            Route::delete('/account', 'destroyAccount')->name('account.destroy');
+        });
 
-    // Profile page additions
-    Route::put('/users/name', [UserController::class, 'updateName'])->name('users.name.update');
-    Route::put('/users/bio', [UserController::class, 'updateBio'])->name('users.bio.update');
-    Route::post('/users/two-factor', [UserController::class, 'toggleTwoFactor'])->name('users.two-factor.toggle');
-    Route::delete('/users/account', [UserController::class, 'destroyAccount'])->name('users.account.destroy');
+        // Follow/Unfollow actions for user targets
+        Route::post('/{user}/follow', [FollowController::class, 'follow'])->name('follow');
+        Route::delete('/{user}/unfollow', [FollowController::class, 'unfollow'])->name('unfollow');
+    });
 
-    // Active sessions (profile page "Active Sessions" section)
-    Route::get('/sessions', [SessionController::class, 'index'])->name('sessions.index');
-    Route::delete('/sessions/other', [SessionController::class, 'destroyOthers'])->name('sessions.destroyOthers');
+    // ------------------------------------------------------------------
+    // Active Sessions (`/sessions`)
+    // ------------------------------------------------------------------
+    Route::prefix('sessions')->name('sessions.')->controller(SessionController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::delete('/other', 'destroyOthers')->name('destroyOthers');
+    });
 
-    Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
-    Route::delete('/posts/{id}', [PostController::class, 'destroy'])->name('posts.destroy');
-    Route::put('/posts/{post}/url', [\App\Http\Controllers\PostController::class, 'updateUrl'])->name('posts.updateUrl');
-    // Post feedback (1/4/6/8/10 rating, feeds into the post owner's reach score)
-    Route::post('/posts/{post}/feedback', [PostFeedbackController::class, 'store'])->name('posts.feedback.store');
+    // ------------------------------------------------------------------
+    // Posts (`/posts`)
+    // ------------------------------------------------------------------
+    Route::prefix('posts')->name('posts.')->group(function () {
+        Route::controller(PostController::class)->group(function () {
+            Route::post('/', 'store')->name('store');
+            Route::delete('/{id}', 'destroy')->name('destroy');
+            Route::put('/{post}/url', 'updateUrl')->name('updateUrl');
+        });
 
-    Route::post('/comments', [CommentController::class, 'store'])->name('comments.store');
-    Route::delete('/comments/{id}', [CommentController::class, 'destroy'])->name('comments.destroy');
+        Route::post('/{post}/feedback', [PostFeedbackController::class, 'store'])->name('feedback.store');
+        Route::post('/{post}/share', [PostCircleShareController::class, 'store'])->name('share');
+        Route::post('/{post}/share-followers', [FollowController::class, 'shareToFollowers'])->name('share-followers');
+        Route::delete('/{post}/unshare-followers', [FollowController::class, 'unshareFromFollowers'])->name('unshare-followers');
+    });
 
-    Route::post('/likes', [LikeController::class, 'store'])->name('likes.store');
-    Route::delete('/likes/{id}', [LikeController::class, 'destroy'])->name('likes.destroy');
+    Route::delete('/post-circle-shares/{postCircleShare}', [PostCircleShareController::class, 'destroy'])
+        ->name('posts.unshare');
 
-    // Circles CRUD
+    // ------------------------------------------------------------------
+    // Comments (`/comments`)
+    // ------------------------------------------------------------------
+    Route::prefix('comments')->name('comments.')->controller(CommentController::class)->group(function () {
+        Route::post('/', 'store')->name('store');
+        Route::delete('/{id}', 'destroy')->name('destroy');
+    });
+
+    // ------------------------------------------------------------------
+    // Likes (`/likes`)
+    // ------------------------------------------------------------------
+    Route::prefix('likes')->name('likes.')->controller(LikeController::class)->group(function () {
+        Route::post('/', 'store')->name('store');
+        Route::delete('/{id}', 'destroy')->name('destroy');
+    });
+
+    // ------------------------------------------------------------------
+    // Circles & Circle Members
+    // ------------------------------------------------------------------
+    Route::get('/my-circles', [CircleController::class, 'myCircles'])->name('circles.my');
+
     Route::resource('circles', CircleController::class)
         ->only(['index', 'store', 'update', 'destroy']);
-    Route::get('/my-circles', [CircleController::class, 'myCircles'])
-        ->name('circles.my');
 
-    // Circle Members (New Backend Direct System)
-    Route::get('/circles/{circle}/members', [CircleMemberController::class, 'index'])
-        ->name('circles.members.index');
+    Route::prefix('circles/{circle}/members')->name('circles.members.')->controller(CircleMemberController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::delete('/{user}', 'destroy')->name('destroy');
+    });
 
-    Route::post('/circles/{circle}/members', [CircleMemberController::class, 'store'])
-        ->name('circles.members.store');
+    // ------------------------------------------------------------------
+    // Saved Posts (`/saved` & `/saves`)
+    // ------------------------------------------------------------------
+    Route::controller(SavedPostController::class)->group(function () {
+        Route::get('/saved', 'index')->name('saves.index');
+        Route::prefix('saves')->name('saves.')->group(function () {
+            Route::post('/', 'store')->name('store');
+            Route::delete('/{savedPost}', 'destroy')->name('destroy');
+        });
+    });
 
-    Route::delete('/circles/{circle}/members/{user}', [CircleMemberController::class, 'destroy'])
-        ->name('circles.members.destroy');
+    // ------------------------------------------------------------------
+    // Notifications (`/notifications`)
+    // ------------------------------------------------------------------
+    Route::prefix('notifications')->name('notifications.')->controller(NotificationController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/read', 'markAsRead')->name('read');
+    });
 
-    // Share Posts into Circles
-    Route::post('/posts/{post}/share', [PostCircleShareController::class, 'store'])
-        ->name('posts.share');
-    Route::delete('/post-circle-shares/{postCircleShare}', [PostCircleShareController::class, 'destroy']
-    )->name('posts.unshare');
+    // ------------------------------------------------------------------
+    // Post Reminders (`/post-reminders`)
+    // ------------------------------------------------------------------
+    Route::prefix('post-reminders')->name('post-reminders.')->controller(PostReminderController::class)->group(function () {
+        Route::post('/', 'store')->name('store');
+        Route::put('/{postId}', 'update')->name('update');
+        Route::delete('/{postId}', 'destroy')->name('destroy');
+    });
 
-    // Save Feature
-    Route::get('/saved', [SavedPostController::class, 'index'])
-        ->name('saves.index');
-    Route::post('/saves', [SavedPostController::class, 'store'])
-        ->name('saves.store');
-
-    Route::delete('/saves/{savedPost}', [SavedPostController::class, 'destroy'])
-        ->name('saves.destroy');
-
-    // search page route
-    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
-
-    // follow feature
-    Route::get('/follow', [FollowController::class, 'index'])->name('follow.index');
-    Route::post('/users/{user}/follow', [FollowController::class, 'follow'])->name('users.follow');
-    Route::delete('/users/{user}/unfollow', [FollowController::class, 'unfollow'])->name('users.unfollow');
-    Route::post('/posts/{post}/share-followers', [FollowController::class, 'shareToFollowers'])->name('posts.share-followers');
-    Route::delete('/posts/{post}/unshare-followers', [FollowController::class, 'unshareFromFollowers'])->name('posts.unshare-followers');
-
-});
-
-Route::middleware('auth')->group(function () {
-    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
-});
-
-Route::middleware('auth')->group(function () {
-    Route::post('/post-reminders', [PostReminderController::class, 'store'])->name('post-reminders.store');
-    Route::put('/post-reminders/{postId}', [PostReminderController::class, 'update'])->name('post-reminders.update');
-    Route::delete('/post-reminders/{postId}', [PostReminderController::class, 'destroy'])->name('post-reminders.destroy');
 });
 
 Route::get('/fire', function () {
