@@ -9,7 +9,6 @@ import ShowPostOverlay from "@/Components/ShowPostOverlay.vue";
 
 import DotsHorizontal from "vue-material-design-icons/DotsHorizontal.vue";
 import Close from "vue-material-design-icons/Close.vue";
-import ArrowRight from "vue-material-design-icons/ArrowRight.vue";
 
 
 let wWidth = ref(window.innerWidth);
@@ -21,11 +20,7 @@ const circles = ref([]); // all circles
 const searchQuery = ref(""); // Tracks the text in the search box
 const openShareId = ref(null); // Tracks which post ID has the share div open
 const openReminderId = ref(null); // Tracks which post ID has the reminder div open
-const openScoreFeedbackId = ref(null); // Tracks which post ID has the reminder div open
 const reminderDate = ref("");
-// --- NEW: URL Upgrade State ---
-const upgradeUrlPostId = ref(null);
-const newUpgradeUrl = ref("");
 
 const user = usePage().props.auth.user;
 const props = defineProps({ posts: Object, searchQuery: String , myCircleIds: Array});
@@ -94,137 +89,6 @@ const unsharePost = (shareId) => {
         },
         preserveScroll: true,
     });
-};
-// New feedbackScore Function
-const toggleFeedBackScore = (postId) => {
-    // If it's already open, close it
-    if (openScoreFeedbackId.value === postId) {
-        openScoreFeedbackId.value = null;
-        return;
-    }
-
-    // Open this post's reminder box
-    openScoreFeedbackId.value = postId;
-    openShareId.value = null; // Optional: close share box if it's open so they don't overlap
-    openReminderId.value = null; // Optional: close share box if it's open so they don't overlap
-};
-// The only 5 values selectable for post feedback. 1 = good ... 10 = bad.
-// Kept as a single constant so the template and validation logic agree.
-const feedbackValues = [1, 4, 6, 8, 10];
-const feedbackLabels = {
-    1: "I really like it",
-    4: "I maybe like it",
-    6: "I maybe dislike it",
-    8: "I dislike it",
-    10: "I really dislike it",
-};
-const submitFeedback = (post, rating) => {
-    const targetPost = posts.value.data.find((p) => p.id === post.id);
-    const previousRating = targetPost ? targetPost.auth_user_feedback : null;
-
-    // 1. Optimistic update — the selected radio fills in instantly.
-    if (targetPost) {
-        targetPost.auth_user_feedback = rating;
-    }
-
-    // 2. Send the request via Inertia
-    router.post(
-        `/posts/${post.id}/feedback`,
-        { rating },
-        {
-            // Prevents losing scroll position or full page reloads
-            preserveScroll: true,
-            onSuccess: () => {
-                openScoreFeedbackId.value = null;
-            },
-            // If the server returns validation errors or a 4xx/5xx status code
-            onError: () => {
-                if (targetPost) {
-                    targetPost.auth_user_feedback = previousRating;
-                }
-            },
-
-            // Backup fallback if the request fails technically (network drop, etc.)
-            onCancel: () => {
-                if (targetPost) {
-                    targetPost.auth_user_feedback = previousRating;
-                }
-            },
-        },
-    );
-};
-
-const shareToFollowers = (post) => {
-    const targetPost = posts.value.data.find((p) => p.id === post.id);
-
-    if (targetPost) {
-        targetPost.is_shared_with_followers = true;
-    }
-
-    openShareId.value = null;
-
-    // IMPORTANT: Use fetch() here instead of router.post().
-    // router.post() triggers a full Inertia visit, which re-runs
-    // HomeController@index and overwrites posts.value.data with fresh
-    // server props. Since the share job is queued (QUEUE_CONNECTION=database),
-    // it almost never finishes before this response comes back, so the
-    // fresh props would say is_shared_with_followers = false and stomp the
-    // optimistic flip we just made above. fetch() avoids touching Inertia's
-    // page props entirely — the websocket event (post.share.status.updated)
-    // is now the single source of truth that confirms/corrects this state.
-    fetch(`/posts/${post.id}/share-followers`, {
-        method: "POST",
-        headers: {
-            "X-CSRF-TOKEN": document
-                .querySelector('meta[name="csrf-token"]')
-                .getAttribute("content"),
-            Accept: "application/json",
-        },
-    })
-        .then((res) => {
-            if (!res.ok && targetPost) {
-                // Server responded but rejected the request (e.g. 403/422). Roll back.
-                targetPost.is_shared_with_followers = false;
-            }
-        })
-        .catch(() => {
-            // Network-level failure (server unreachable, etc). Roll back.
-            if (targetPost) {
-                targetPost.is_shared_with_followers = false;
-            }
-        });
-};
-
-const unshareFromFollowers = (post) => {
-    const targetPost = posts.value.data.find((p) => p.id === post.id);
-
-    if (targetPost) {
-        targetPost.is_shared_with_followers = false;
-    }
-
-    openShareId.value = null;
-
-    // Same reasoning as shareToFollowers() above: fetch() instead of
-    // router.delete() so the Inertia page props are never touched here.
-    fetch(`/posts/${post.id}/unshare-followers`, {
-        method: "DELETE",
-        headers: {
-            "X-CSRF-TOKEN": document
-                .querySelector('meta[name="csrf-token"]')
-                .getAttribute("content"),
-            Accept: "application/json",
-        },
-    })
-        .then((res) => {
-            if (!res.ok && targetPost) {
-                targetPost.is_shared_with_followers = true;
-            }
-        })
-        .catch(() => {
-            if (targetPost) {
-                targetPost.is_shared_with_followers = true;
-            }
-        });
 };
 
 onMounted(() => {
@@ -363,7 +227,6 @@ const toggleReminder = (postId) => {
     // Open this post's reminder box
     openReminderId.value = postId;
     openShareId.value = null; // Optional: close share box if it's open so they don't overlap
-    openScoreFeedbackId.value = null; // Optional: close share box if it's open so they don't overlap
 
     // Pre-fill the date if the user already has a reminder set
     const post = posts.value.data.find((p) => p.id === postId);
@@ -426,57 +289,6 @@ const deleteReminder = (postId) => {
         },
     });
 };
-// upgrade url fun logic
-const addURLReqFun = (postId) => {
-    // 1. Save the ID of the post we want to update
-    upgradeUrlPostId.value = postId;
-    // 2. Ask the extension for the active tab's URL
-    window.parent.postMessage("request_tab_info_for_upgrade_url", "*");
-};
-
-const clearUpgradeUrl = () => {
-    upgradeUrlPostId.value = null;
-    newUpgradeUrl.value = "";
-};
-
-
-const submitUrlUpdate = (postId) => {
-    router.put(`/posts/${postId}/url`, { new_url: newUpgradeUrl.value }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            // Optimistically update the post array in the UI instantly
-            // const targetPost = posts.value.data.find((p) => p.id === postId);
-            // if (targetPost) {
-            //     if (targetPost.url) {
-            //         targetPost.url = targetPost.url + ' | ' + newUpgradeUrl.value;
-            //     } else {
-            //         targetPost.url = newUpgradeUrl.value;
-            //     }
-            // }
-            
-            // Close the glassy badge
-            clearUpgradeUrl();
-        }
-    });
-};
-// --- NEW: Open all piped URLs in different tabs ---
-const openAllUrls = (urlString) => {
-    if (!urlString) return;
-
-    // Split the string by '|', remove extra spaces, and filter out any empty ones
-    const urls = urlString.split('|').map(url => url.trim()).filter(url => url !== "");
-console.log(urls)
-    urls.forEach(url => {
-        // Safety check: ensure the URL starts with http:// or https:// so it doesn't break routing
-        let finalUrl = url;
-        if (!/^https?:\/\//i.test(finalUrl)) {
-            finalUrl = 'http://' + finalUrl;
-        }
-
-        // Open in a new tab
-        window.open(finalUrl, '_blank');
-    });
-};
 
 // real time implementation 
 
@@ -531,59 +343,7 @@ const handleReminderSent = (eventData) => {
     }
 };
 
-// --- NEW HELPER: Handle Moderation Results ---
-const handleModerationUpdate = (eventData) => {
-    if (eventData.type === "post") {
-        if (eventData.status === "deleted") {
-            // Rips the post out of the feed instantly
-            handlePostDeletion({ id: eventData.contentId });
-        } else if (eventData.status === "flagged") {
-            // Find post and mark it flagged so UI can show a warning
-            const post = posts.value.data.find(
-                (p) => p.id === eventData.contentId,
-            );
-            if (post) post.status = "flagged";
-        }
-    } else if (eventData.type === "comment") {
-        // Find which post contains this comment
-        for (let post of posts.value.data) {
-            const commentIndex = post.comments.findIndex(
-                (c) => c.id === eventData.contentId,
-            );
-            if (commentIndex !== -1) {
-                if (eventData.status === "deleted") {
-                    // Rip the comment out instantly
-                    post.comments.splice(commentIndex, 1);
-                } else if (eventData.status === "flagged") {
-                    post.comments[commentIndex].status = "flagged";
-                }
-                break; // Stop searching once found
-            }
-        }
-    }
-};
-
-// --- HELPER FUNCTION: Update URL ---
-const handleUrlUpdate = (eventData) => {
-    const post = posts.value.data.find((p) => p.id === eventData.postId);
-
-    if (post) {
-        post.url = eventData.url;
-    }
-
-    // Also update the overlay if it is currently open
-    if (currentPost.value && currentPost.value.id === eventData.postId) {
-        currentPost.value.url = eventData.url;
-    }
-};
-
 onMounted(() => {
-    // NEW: Listen for the URL coming back from the extension
-    window.addEventListener("message", (event) => {
-        if (event.data && event.data.type === "tab_info_for_upgrade") {
-            newUpgradeUrl.value = event.data.url;
-        }
-    });
     // 1. MY USER CHANNEL
     window.Echo.private(`App.Models.User.${user.id}`)
         // A. Post Created (Sync other tabs)
@@ -605,97 +365,6 @@ onMounted(() => {
         // NEW: Listen for comments on my posts
         .listen(".post.comment.updated", (e) => {
             handleCommentUpdate(e);
-        })
-        // NEW: Listen for Moderation API results
-        .listen(".content.moderated", (e) => {
-            handleModerationUpdate(e);
-        })
-        // NEW: Listen for URL updates on my own posts
-        .listen(".post.url.updated", (e) => {
-            handleUrlUpdate(e);
-        })
-        .listen(".follower.post.shared", (e) => {
-            // Find if the post already exists in this user's current feed array
-            const existingPostIndex = posts.value.data.findIndex(
-                (p) => p.id === e.id,
-            );
-
-            if (existingPostIndex !== -1) {
-                // SCENARIO A: The user already has this post in their UI (likely the Post Owner)
-                // BUG FIX: Preserve the author's optimistic is_shared_with_followers state.
-                // When the author clicks "Share", they optimistically set is_shared_with_followers=true.
-                // Previously, the spread `...e` would overwrite it with the (broken) event payload value.
-                // Now the event correctly sends is_shared_with_followers=true, but we still protect
-                // against race conditions by not letting the event downgrade the author's state.
-                const existingPost = posts.value.data[existingPostIndex];
-                const isAuthor = existingPost.user.id === user.id;
-
-                // For the author: preserve their optimistic state on is_shared_with_followers
-                // For other users: use the event's value
-                const sharedState = isAuthor
-                    ? existingPost.is_shared_with_followers
-                    : e.is_shared_with_followers;
-
-                posts.value.data[existingPostIndex] = {
-                    ...existingPost,
-                    ...e,
-                    is_shared_with_followers: sharedState,
-                };
-
-                // If this post is currently active inside the comment/detail overlay, refresh it too
-                if (currentPost.value && currentPost.value.id === e.id) {
-                    currentPost.value = posts.value.data[existingPostIndex];
-                }
-            } else {
-                // SCENARIO B: The user doesn't have the post yet (the Follower)
-                // Add the brand new post to the very top of their timeline feed
-                posts.value.data.unshift(e);
-            }
-        })
-        // NEW: Listen for real-time unshares
-        .listen(".follower.post.unshared", (e) => {
-            // Locate the post to inspect who owns it before taking action
-            const postIndex = posts.value.data.findIndex((p) => p.id === e.id);
-
-            if (postIndex !== -1) {
-                const targetPost = posts.value.data[postIndex];
-
-                if (targetPost.user.id === user.id) {
-                    // SCENARIO A: The current user is the OWNER of the post
-                    // Do NOT erase it from their screen! Just update the toggle flag back to false
-                    targetPost.is_shared_with_followers = false;
-
-                    if (currentPost.value && currentPost.value.id === e.id) {
-                        currentPost.value.is_shared_with_followers = false;
-                    }
-                } else {
-                    // SCENARIO B: The current user is a FOLLOWER
-                    // Completely strip the post out of their feed layout instantly
-                    posts.value.data = posts.value.data.filter(
-                        (p) => p.id !== e.id,
-                    );
-
-                    if (currentPost.value && currentPost.value.id === e.id) {
-                        currentPost.value = null;
-                        openOverlay.value = false;
-                    }
-                }
-            }
-        })
-        // NEW: Authoritative, author-only, single-fire confirmation of share state.
-        // Sent ONLY to the author's channel, exactly once per share/unshare action
-        // (never broadcast to followers, never fired N times).
-        .listen(".post.share.status.updated", (e) => {
-            const post = posts.value.data.find((p) => p.id === e.id);
-
-            if (post) {
-                post.is_shared_with_followers = e.is_shared_with_followers;
-            }
-
-            if (currentPost.value && currentPost.value.id === e.id) {
-                currentPost.value.is_shared_with_followers =
-                    e.is_shared_with_followers;
-            }
         });
 
     // 2. Listen for "Post Shared" in my Circles
@@ -741,13 +410,6 @@ onMounted(() => {
                 // NEW: Listen for comments on shared posts
                 .listen(".post.comment.updated", (e) => {
                     handleCommentUpdate(e);
-                })
-                .listen(".content.moderated", (e) => {
-                    handleModerationUpdate(e);
-                })
-                // NEW: Listen for URL updates on shared posts
-                .listen(".post.url.updated", (e) => {
-                    handleUrlUpdate(e);
                 })
                 .error((error) => {
                     console.error("Channel Error:", error);
@@ -832,17 +494,10 @@ onUnmounted (() => {
                 </div>
                 <div
                     id="Posts"
-                    class="md:max-w-[600px] w-full mx-auto mt-10 relative overflow-hidden"
+                    class="md:max-w-[600px] w-full mx-auto mt-10"
                     v-for="post in posts.data"
                     :key="post"
                 >
-                    <div
-                        v-if="user.id === post.user.id"
-                        @click="addURLReqFun(post.id)"
-                        class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#aa4cffe0] text-white text-2xl z-10 shadow-md"
-                    >
-                        +
-                    </div>
                     <div class="flex items-center justify-between py-2">
                         <div class="flex items-center">
                             <Link
@@ -880,165 +535,40 @@ onUnmounted (() => {
                             "
                         />
                     </div>
-                    <div class="postControllerOverlay relative">
-                        <div
-                            v-if="post.status === 'flagged'"
-                            class="absolute backdrop-blur-md shadow-md bg-white/30 rounded-sm w-full h-full flex items-center justify-center flex-col"
-                        >
-                            <p class="font-bold text-lg">
-                                This Post may contains sensitive Content
-                            </p>
-                            <p
-                                class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
-                                @click="post.status = 'allowed'"
-                            >
-                                See Anyway
-                            </p>
-                        </div>
-                        <div class="text-lg my-4">
-                            {{ post.text }}
-                        </div>
-                        <!-- Single Button to open one or multiple URLs -->
-                        <div v-if="post.url" class="my-4">
-                            <div
-                                @click="openAllUrls(post.url)"
-                                class="flex gap-2 items-center text-lg text-blue-500 hover:text-gray-900 cursor-pointer w-max"
-                            >
-                                <div>
-                                    Visit Site{{ post.url.includes('|') ? 's (' + post.url.split('|').length + ')' : '' }}
-                                </div>
-                                <ArrowRight :size="22" />
-                            </div>
-                        </div>
-
-                        <LikesSection
-                            :post="post"
-                            @like="updateLike($event)"
-                            @share="toggleShare"
-                            @feedbackScore="toggleFeedBackScore($event)"
-                            @comment="openOverlayToggler(post)"
-                            @saved="toggleSave"
-                            @reminder="toggleReminder($event)"
-                        />
-
-                        <div class="text-black font-extrabold py-1">
-                            {{ post.likes.length }} likes
-                        </div>
-
-                        <div class="flex justify-between gap-1">
-                            <button
-                                @click="
-                                    currentPost = post;
-                                    openOverlay = true;
-                                "
-                                class="text-gray-500 font-extrabold py-1"
-                            >
-                                View all {{ post.comments.length }} comments
-                            </button>
-
-                            <button
-                                class="text-gray-500 font-extrabold py-1"
-                                v-if="post.user.id === user.id"
-                            >
-                                Shared in {{ post.shared_circles_count }} circles
-                            </button>
-                        </div>
+                    <div class="text-lg my-4">
+                        {{ post.text }}
                     </div>
-                    <!-- NEW: Glassy URL Upgrade Badge -->
-                    <div
-                        v-if="upgradeUrlPostId === post.id && newUpgradeUrl"
-                        class="my-3 p-3 backdrop-blur-md bg-white/40 border border-white/50 shadow-lg rounded-xl flex flex-col gap-3 relative transition-all z-10"
-                    >
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex flex-col overflow-hidden">
-                                <span
-                                    class="text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                                    >Upgrade URL :</span
-                                >
-                                <span
-                                    class="text-sm font-semibold text-blue-600 truncate"
-                                    >{{ newUpgradeUrl }}</span
-                                >
-                            </div>
-                            <Close
-                                @click="clearUpgradeUrl"
-                                :size="18"
-                                class="cursor-pointer text-gray-500 hover:text-red-500 p-1 bg-white/80 rounded-full shadow-sm shrink-0"
-                            />
-                        </div>
+
+                    <LikesSection
+                        :post="post"
+                        @like="updateLike($event)"
+                        @share="toggleShare"
+                        @comment="openOverlayToggler(post)"
+                        @saved="toggleSave"
+                        @reminder="toggleReminder($event)"
+                    />
+
+                    <div class="text-black font-extrabold py-1">
+                        {{ post.likes.length }} likes
+                    </div>
+
+                    <div class="flex justify-between gap-1">
                         <button
-                            @click="submitUrlUpdate(post.id)"
-                            class="bg-black text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition active:scale-95"
+                            @click="
+                                currentPost = post;
+                                openOverlay = true;
+                            "
+                            class="text-gray-500 font-extrabold py-1"
                         >
-                            Confirm & Update URL
+                            View all {{ post.comments.length }} comments
                         </button>
-                    </div>
-                    <!-- Feedback widget: shown to everyone EXCEPT the post owner.
-                         One rating per user per post, but editable — if the user
-                         has already rated, their existing choice is pre-selected
-                         and changing it sends an update rather than a new row. -->
-                    <!-- v-if="post.user.id !== user.id" -->
-                    <div
-                        v-if="openScoreFeedbackId === post.id"
-                        class="m-1 md:m-4 rounded-md p-1 py-2 md:p-3 border border-gray-100 shadow"
-                    >
-                        <div class="flex justify-between">
-                            <div
-                                class="text-[10px] font-black text-gray-800 uppercase tracking-widest mb-2"
-                            >
-                                Share your thoughts
-                                <span
-                                    v-if="post.auth_user_feedback"
-                                    class="text-gray-300 font-bold normal-case tracking-normal hidden md:inline"
-                                >
-                                    — you chose: "
-                                    {{ feedbackLabels[post.auth_user_feedback] }} "
-                                </span>
-                            </div>
 
-                            <Close
-                                @click="
-                                    {
-                                        openScoreFeedbackId = null;
-                                    }
-                                "
-                                :size="15"
-                                class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-2"
-                            />
-                        </div>
-                        <div class="flex items-center justify-evenly gap-2">
-                            <label
-                                v-for="value in feedbackValues"
-                                :key="value"
-                                class="group relative flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold cursor-pointer transition-all border"
-                                :class="
-                                    post.auth_user_feedback === value
-                                        ? 'bg-black text-white border-black'
-                                        : 'bg-gray-50 text-gray-600 border-gray-100 hover:border-black'
-                                "
-                            >
-                                <input
-                                    type="radio"
-                                    :name="`feedback-${post.id}`"
-                                    :value="value"
-                                    class="hidden"
-                                    @change="submitFeedback(post, value)"
-                                />
-                                {{ value }}
-
-                                <span
-                                    class="absolute bottom-full mb-2 hidden group-hover:flex items-center justify-center bg-gray-900 text-white text-[10px] font-medium px-2 py-1 rounded shadow-md whitespace-nowrap pointer-events-none z-10 raw-css after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-gray-900"
-                                >
-                                    {{ feedbackLabels[value] }}
-                                </span>
-                            </label>
-                        </div>
-                        <div
-                            class="flex justify-between text-[10px] mt-3 font-bold text-gray-300 mt-1 px-1"
+                        <button
+                            class="text-gray-500 font-extrabold py-1"
+                            v-if="post.user.id === user.id"
                         >
-                            <span>1 = mean you realy like that content</span>
-                            <span>10 = mean you realy dislike that content</span>
-                        </div>
+                            Shared in {{ post.shared_circles_count }} circles
+                        </button>
                     </div>
 
                     <div
@@ -1112,23 +642,6 @@ onUnmounted (() => {
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                        <div class="mt-4 pt-4 border-t border-gray-100">
-                            <button
-                                v-if="post.is_shared_with_followers"
-                                @click="unshareFromFollowers(post)"
-                                class="w-full py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition shadow-sm active:scale-95"
-                            >
-                                Unshare from All My Followers
-                            </button>
-
-                            <button
-                                v-else
-                                @click="shareToFollowers(post)"
-                                class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition shadow-sm active:scale-95"
-                            >
-                                Share to All My Followers
-                            </button>
                         </div>
                     </div>
                     <div
@@ -1209,10 +722,6 @@ onUnmounted (() => {
         @closeOverlay="openOverlay = false"
         @openReminder="
             toggleReminder($event);
-            openOverlay = false;
-        "
-        @openFeedbackScore="
-            toggleFeedBackScore($event);
             openOverlay = false;
         "
     />

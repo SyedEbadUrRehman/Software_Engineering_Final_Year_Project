@@ -1,6 +1,7 @@
 <?php
 
 use App\Events\TestEvent;
+use App\Http\Controllers\Admin\ModerationController;
 use App\Http\Controllers\CircleController;
 use App\Http\Controllers\CircleMemberController;
 use App\Http\Controllers\CommentController;
@@ -154,6 +155,25 @@ Route::middleware(['auth', 'verified','2fa'])->group(function () {
     });
 
 });
+/*
+|--------------------------------------------------------------------------
+| Admin Routes
+|--------------------------------------------------------------------------
+|
+| Protected by 'auth' + the 'admin' middleware alias (see README) which
+| only allows the ebaddev@gmail.com account through.
+|
+*/
+
+Route::middleware(['auth', 'verified', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::prefix('moderation')->name('moderation.')->controller(ModerationController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::patch('/{type}/{id}', 'updateStatus')->name('update');
+        });
+    });
 
 Route::get('/fire', function () {
     broadcast(new TestEvent());
