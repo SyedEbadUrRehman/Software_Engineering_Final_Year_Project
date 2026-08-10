@@ -176,11 +176,11 @@ const cards = [
                 <div class="gsap-item bg-gray-50 rounded-2xl p-5 flex flex-col border border-gray-100/80 h-full">
                     <div class="gsap-icon bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6 text-left">
 
-                        <p class="text-[10px] font-semibold tracking-wider text-gray-400 uppercase mb-2.5">Payment
-                            Method</p>
+                        <p class="text-[10px] font-semibold tracking-wider text-gray-400 uppercase mb-2.5">Manage Circles
+                            </p>
 
                         <div class="flex items-center gap-1 text-[13px] font-medium text-gray-700 mb-2">
-                            Select Payment Method
+                            Search a member to add
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" class="text-gray-300">
                                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
                                 <path d="M12 11V16.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
@@ -189,18 +189,18 @@ const cards = [
                         </div>
 
                         <div class="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 mb-2">
-                            <span class="text-sm text-gray-700">Wire</span>
+                            <span class="text-sm text-gray-700">search by name, email ...</span>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="text-gray-400">
                                 <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8"
                                     stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                         </div>
 
-                        <p class="text-[11px] text-gray-400 mb-3">Same-day transfer, no fees.</p>
+                        <p class="text-[11px] text-gray-400 mb-3">add member with no limits.</p>
 
                         <div class="border-t border-gray-100 pt-3">
                             <p class="text-[10px] font-semibold tracking-wider text-gray-400 uppercase mb-2.5">
-                                Recipient's Bank Details</p>
+                                Members Details</p>
                             <div class="flex items-center justify-between gap-2">
                                 <div class="flex items-center gap-2.5 min-w-0">
                                     <div
@@ -216,12 +216,11 @@ const cards = [
                                         </svg>
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="text-xs font-semibold text-gray-800 truncate">Summit Finance
-                                            International</p>
-                                        <p class="text-[11px] text-gray-400">Account ••9876 · Routing ••5432</p>
+                                        <p class="text-xs font-semibold text-gray-800 truncate">Arsalan Ash</p>
+                                        <p class="text-[11px] text-gray-400">arsaln@ash.champion</p>
                                     </div>
                                 </div>
-                                <a href="#" class="text-xs text-blue-600 font-medium shrink-0">Edit</a>
+                                <a href="#" class="text-xs text-blue-600 font-medium shrink-0">View</a>
                             </div>
                         </div>
 

@@ -96,7 +96,9 @@ const scrollToTop = () => {
             >
                 Stop forcing your workflow into rigid templates. Our automation
                 adapts to your team's habits and helps everyone collaborate
-                naturally.
+                naturally. <br>
+                <a :href="route('extension.download')"  target="blank" class="hover:text-black  text-blue-400 transition"
+                    >Get free Extension </a>
             </p>
 
             <div 

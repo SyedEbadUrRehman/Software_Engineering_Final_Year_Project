@@ -37,6 +37,9 @@ use Inertia\Inertia;
 Route::get('/privacy-policy', function () {
     return Inertia::render('PrivacyPolicy');
 })->name('privacy.policy');
+Route::get('/download-extension', function () {
+    return Inertia::render('DownloadExtension');
+})->name('extension.download');
 
 
 // Main Group: Protected by 'auth' and '2fa' middlewares

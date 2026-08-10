@@ -107,7 +107,7 @@ useScrollIconText(sectionRef, {
       </h1>
       <p class="subtext gsap-para">Efficiently manage your ideas and boost productivity.</p>
       <div class="cta-row gsap-text">
-        <Link :href="route('home.index')" class="btn primary">Get started free</Link>
+        <a :href="route('extension.download')" target="blank" class="btn primary">Get free Extension</a>
         <!-- <button class="btn ghost">See how it works</button> -->
       </div>
     </div>
