@@ -1020,7 +1020,7 @@ const handleUrlUpdate = (eventData) => {
                         </label>
                     </div>
                     <div
-                        class="flex justify-between text-[10px] mt-3 font-bold text-gray-300 mt-1 px-1"
+                        class="flex justify-between text-[10px] mt-3 font-bold text-gray-300 px-1"
                     >
                         <span>1 = mean you realy like that content</span>
                         <span>10 = mean you realy dislike that content</span>
