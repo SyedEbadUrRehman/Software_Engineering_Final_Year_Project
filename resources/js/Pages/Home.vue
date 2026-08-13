@@ -819,7 +819,7 @@ const handleUrlUpdate = (eventData) => {
                 <div
                     v-if="user.id === post.user.id"
                     @click="addURLReqFun(post.id)"
-                    class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#aa4cffe0] text-white text-2xl z-10 shadow-md"
+                    class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#0095F6] text-white text-2xl z-10 shadow-md"
                 >
                     +
                 </div>

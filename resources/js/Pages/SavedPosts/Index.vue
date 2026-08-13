@@ -751,7 +751,7 @@ console.log(urls)
             class="md:min-w-[600px] mx-auto lg:pl-0 md:pl-[80px] pl-0 relative"
         >
             <div
-                class="text-center sticky md:top-0 top-[61px] sm:text-left bg-white flex items-stretch flex-col py-3"
+                class="text-center sticky md:top-0 top-[61px] z-10 sm:text-left bg-white flex items-stretch flex-col py-3"
             >
                 <h1 class="text-4xl font-black tracking-tighter text-gray-900">
                     Saved
@@ -770,7 +770,7 @@ console.log(urls)
                     <div
                         v-if="user.id === post.user.id"
                         @click="addURLReqFun(post.id)"
-                        class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#aa4cffe0] text-white text-2xl z-10 shadow-md"
+                        class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#0095F6] text-white text-2xl z-10 shadow-md"
                     >
                         +
                     </div>
