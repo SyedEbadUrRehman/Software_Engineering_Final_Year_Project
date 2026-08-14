@@ -895,7 +895,7 @@ onUnmounted (() => {
                                 See Anyway
                             </p>
                         </div>
-                        <div class="text-lg my-4">
+                        <div class="text-lg my-4 whitespace-pre-wrap">
                             {{ post.text }}
                         </div>
                         <!-- Single Button to open one or multiple URLs -->

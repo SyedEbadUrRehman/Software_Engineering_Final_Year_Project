@@ -127,7 +127,7 @@ const textareaInput = (e) => {
                                     >
                                         {{ post.user.name }}
                                     </span>
-                                    <span class="text-[15px] text-gray-900">
+                                    <span class="text-[15px] text-gray-900 whitespace-pre-wrap">
                                         {{ post.text }}
                                     </span>
                                 </div>
@@ -183,7 +183,7 @@ const textareaInput = (e) => {
                                             See Anyway
                                         </p>
                                     </div>
-                                    <div class="text-[13px] pl-[55px]">
+                                    <div class="text-[13px] pl-[55px] whitespace-pre-wrap">
                                         {{ comment.text }}
                                     </div>
                                 </div>
