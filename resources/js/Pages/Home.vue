@@ -5,6 +5,8 @@ import MainLayout from "@/Layouts/MainLayout.vue";
 
 import LikesSection from "@/Components/LikesSection.vue";
 import ShowPostOverlay from "@/Components/ShowPostOverlay.vue";
+import EditPostOverlay from "@/Components/EditPostOverlay.vue";
+import ShowPostOptionsOverlay from "@/Components/ShowPostOptionsOverlay.vue";
 
 import "vue3-carousel/dist/carousel.css";
 import { Carousel, Slide, Navigation } from "vue3-carousel";
@@ -29,6 +31,9 @@ const reminderDate = ref("");
 const upgradeUrlPostId = ref(null);
 const newUpgradeUrl = ref("");
 
+let activeOptionsPost = ref(null);
+let showEditPostOverlay = ref(false);
+
 const user = usePage().props.auth.user;
 const props = defineProps({
     posts: Object,
@@ -49,6 +54,22 @@ const handleReactionUpdate = (eventData) => {
         // console.log(`Updating likes for Post #${eventData.id}`);
         // Swap the old likes array with the new one from the server
         post.likes = eventData.likes;
+    }
+};
+
+// New Reverb listener helper for updates
+const handlePostUpdate = (eventData) => {
+    const existingPostIndex = posts.value.data.findIndex(
+        (p) => p.id === eventData.id,
+    );
+    if (existingPostIndex !== -1) {
+        posts.value.data[existingPostIndex] = {
+            ...posts.value.data[existingPostIndex],
+            ...eventData,
+        };
+    }
+    if (currentPost.value && currentPost.value.id === eventData.id) {
+        currentPost.value = { ...currentPost.value, ...eventData };
     }
 };
 
@@ -158,6 +179,10 @@ onMounted(() => {
         // NEW: Listen for URL updates on my own posts
         .listen(".post.url.updated", (e) => {
             handleUrlUpdate(e);
+        })
+        // NEW update post Listen
+        .listen(".post.updated", (e) => {
+            handlePostUpdate(e.post);
         })
         .listen(".follower.post.shared", (e) => {
             // Find if the post already exists in this user's current feed array
@@ -293,6 +318,10 @@ onMounted(() => {
                 // NEW: Listen for URL updates on shared posts
                 .listen(".post.url.updated", (e) => {
                     handleUrlUpdate(e);
+                })
+                // 👉 ADD THIS HERE: Listen for text edits on shared posts
+                .listen(".post.updated", (e) => {
+                    handlePostUpdate(e.post);
                 })
                 .error((error) => {
                     console.error("Channel Error:", error);
@@ -711,42 +740,48 @@ const clearUpgradeUrl = () => {
     newUpgradeUrl.value = "";
 };
 
-
 const submitUrlUpdate = (postId) => {
-    router.put(`/posts/${postId}/url`, { new_url: newUpgradeUrl.value }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            // Optimistically update the post array in the UI instantly
-            // const targetPost = posts.value.data.find((p) => p.id === postId);
-            // if (targetPost) {
-            //     if (targetPost.url) {
-            //         targetPost.url = targetPost.url + ' | ' + newUpgradeUrl.value;
-            //     } else {
-            //         targetPost.url = newUpgradeUrl.value;
-            //     }
-            // }
-            
-            // Close the glassy badge
-            clearUpgradeUrl();
-        }
-    });
+    router.put(
+        `/posts/${postId}/url`,
+        { new_url: newUpgradeUrl.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                // Optimistically update the post array in the UI instantly
+                // const targetPost = posts.value.data.find((p) => p.id === postId);
+                // if (targetPost) {
+                //     if (targetPost.url) {
+                //         targetPost.url = targetPost.url + ' | ' + newUpgradeUrl.value;
+                //     } else {
+                //         targetPost.url = newUpgradeUrl.value;
+                //     }
+                // }
+
+                // Close the glassy badge
+                clearUpgradeUrl();
+            },
+        },
+    );
 };
 // --- NEW: Open all piped URLs in different tabs ---
 const openAllUrls = (urlString) => {
     if (!urlString) return;
 
     // Split the string by '|', remove extra spaces, and filter out any empty ones
-    const urls = urlString.split('|').map(url => url.trim()).filter(url => url !== "");
-console.log(urls)
-    urls.forEach(url => {
+    const urls = urlString
+        .split("|")
+        .map((url) => url.trim())
+        .filter((url) => url !== "");
+    console.log(urls);
+    urls.forEach((url) => {
         // Safety check: ensure the URL starts with http:// or https:// so it doesn't break routing
         let finalUrl = url;
         if (!/^https?:\/\//i.test(finalUrl)) {
-            finalUrl = 'http://' + finalUrl;
+            finalUrl = "http://" + finalUrl;
         }
 
         // Open in a new tab
-        window.open(finalUrl, '_blank');
+        window.open(finalUrl, "_blank");
     });
 };
 // --- HELPER FUNCTION: Update URL ---
@@ -762,7 +797,6 @@ const handleUrlUpdate = (eventData) => {
         currentPost.value.url = eventData.url;
     }
 };
-
 </script>
 
 <template>
@@ -807,7 +841,9 @@ const handleUrlUpdate = (eventData) => {
                     <Navigation />
                 </template>
             </Carousel> -->
-  <div class=" sm:text-left bg-white px-4 mb-6 border-b border-gray-200 pb-4">
+            <div
+                class="sm:text-left bg-white px-4 mb-6 border-b border-gray-200 pb-4"
+            >
                 <div class="text-3xl font-extrabold">Home Feeds</div>
             </div>
             <div
@@ -855,6 +891,7 @@ const handleUrlUpdate = (eventData) => {
                         @click="
                             showDeleteConfirm = true;
                             deletePosId = post.id;
+                            activeOptionsPost = post;
                         "
                     />
                     <!-- @click="deleteFunc({id:post.id,deleteType : 'Post'})" -->
@@ -884,7 +921,13 @@ const handleUrlUpdate = (eventData) => {
                             class="flex gap-2 items-center text-lg text-blue-500 hover:text-gray-900 cursor-pointer w-max"
                         >
                             <div>
-                                Visit Site{{ post.url.includes('|') ? 's (' + post.url.split('|').length + ')' : '' }}
+                                Visit Site{{
+                                    post.url.includes("|")
+                                        ? "s (" +
+                                          post.url.split("|").length +
+                                          ")"
+                                        : ""
+                                }}
                             </div>
                             <ArrowRight :size="22" />
                         </div>
@@ -1201,35 +1244,39 @@ const handleUrlUpdate = (eventData) => {
         "
     />
 
-    <div
+
+    <!-- Replaced hardcoded HTML with dynamic component -->
+    <ShowPostOptionsOverlay
         v-if="showDeleteConfirm"
-        id="ShowPostOptionsOverlay"
-        class="fixed flex items-center z-50 top-0 left-0 w-full h-screen bg-[#000000] bg-opacity-60 p-3"
-    >
-        <div
-            class="max-w-sm w-full mx-auto mt-10 bg-white rounded-xl text-center"
-        >
-            <button
-                @click="
-                    deleteFunc({ id: deletePosId, deleteType: 'Post' });
-                    showDeleteConfirm = false;
-                    deletePosId = null;
-                "
-                class="font-extrabold w-full text-red-600 p-3 text-lg border-b border-b-gray-300 cursor-pointer"
-            >
-                Delete Post
-            </button>
-            <div
-                class="p-3 text-lg cursor-pointer"
-                @click="
-                    showDeleteConfirm = false;
-                    deletePosId = null;
-                "
-            >
-                Cancel
-            </div>
-        </div>
-    </div>
+        :deleteType="'Post'"
+        :id="deletePosId"
+        :postObj="activeOptionsPost"
+        @deleteSelected="
+            deleteFunc($event);
+            showDeleteConfirm = false;
+            deletePosId = null;
+            activeOptionsPost = null;
+        "
+        @editSelected="
+            showEditPostOverlay = true;
+            showDeleteConfirm = false;
+        "
+        @close="
+            showDeleteConfirm = false;
+            deletePosId = null;
+            activeOptionsPost = null;
+        "
+    />
+
+    <!-- New Edit Overlay -->
+    <EditPostOverlay
+        v-if="showEditPostOverlay"
+        :post="activeOptionsPost"
+        @close="
+            showEditPostOverlay = false;
+            activeOptionsPost = null;
+        "
+    />
 </template>
 
 <style>

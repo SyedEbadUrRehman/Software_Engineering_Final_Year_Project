@@ -87,6 +87,7 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
             Route::post('/', 'store')->name('store');
             Route::delete('/{id}', 'destroy')->name('destroy');
             Route::put('/{post}/url', 'updateUrl')->name('updateUrl');
+            Route::put('/{post}',  'update')->name('posts.update');
         });
 
         Route::post('/{post}/feedback', [PostFeedbackController::class, 'store'])->name('feedback.store');

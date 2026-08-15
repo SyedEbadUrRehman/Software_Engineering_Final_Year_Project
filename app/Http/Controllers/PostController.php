@@ -70,7 +70,36 @@ class PostController extends Controller
 
         return redirect()->back()->with('success', 'URL appended successfully!');
     }
+/**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $post = Post::findOrFail($id);
 
+        if ($post->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'text' => 'required',
+        ]);
+
+        $post->text = $request->input('text');
+        $post->url = $request->input('url');
+        $post->save();
+
+        // 1. Load relationships
+        $post->load(['user', 'comments.user', 'likes', 'sharedCircles', 'saves']);
+
+        // 2. Capture Shared Circle IDs
+        $sharedCircleIds = $post->sharedCircles()->pluck('circles.id')->toArray();
+
+        // 3. Broadcast to owner's other tabs and shared circles
+        broadcast(new \App\Events\PostUpdated($post, $sharedCircleIds))->toOthers();
+
+        return redirect()->back()->with('success', 'Post updated successfully!');
+    }
     /**
      * Remove the specified resource from storage.
      */
