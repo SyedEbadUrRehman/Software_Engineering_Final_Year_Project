@@ -6,16 +6,37 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Throwable;
 
 class ProcessUrlWithGrokAi implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /**
+     * Maximum total attempts.
+     */
     public $tries = 3;
+
+    /**
+     * Retry delays:
+     *
+     * Attempt 1 fails → wait 10 sec
+     * Attempt 2 fails → wait 20 sec
+     */
+    public function backoff(): array
+    {
+        return [10, 20];
+    }
+
+    /**
+     * Don't let one request run forever.
+     */
+    public $timeout = 120;
 
     public function __construct(
         public string $url,
@@ -23,25 +44,111 @@ class ProcessUrlWithGrokAi implements ShouldQueue
         public int $userId
     ) {}
 
+    /**
+     * Groq rate limit:
+     * maximum 3 jobs per minute.
+     */
+    public function middleware(): array
+    {
+        return [
+            new RateLimited('groq-ai'),
+        ];
+    }
+
+    /**
+     * Called before the job starts.
+     */
+    protected function updateStatus(
+        string $status,
+        string $message
+    ): void {
+        Cache::put(
+            "ai_idea:{$this->trackingToken}",
+            [
+                'status'      => $status,
+                'message'     => $message,
+                'description' => null,
+            ],
+            now()->addMinutes(15)
+        );
+
+        event(new AiIdeaGenerated(
+            $this->userId,
+            $this->trackingToken,
+            [
+                'status'      => $status,
+                'message'     => $message,
+                'description' => null,
+            ]
+        ));
+    }
+
     public function handle(): void
     {
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 1: Fetch webpage
+        |--------------------------------------------------------------------------
+        */
+
+        $this->updateStatus(
+            'fetching',
+            'Fetching webpage content...'
+        );
+
         $groqApiKey = config('services.groq.key');
 
-        // 1. Fetch website content using r.jina.ai (turns the page into clean Markdown)
-        $jinaResponse = Http::timeout(30)->get("https://r.jina.ai/{$this->url}");
+        $jinaResponse = Http::timeout(30)
+            ->get("https://r.jina.ai/{$this->url}");
 
-        $websiteContent = $jinaResponse->successful()
-            ? $jinaResponse->body()
-            : "Content could not be retrieved from the URL.";
+        if (! $jinaResponse->successful()) {
+            throw new \RuntimeException(
+                'Unable to retrieve webpage content.'
+            );
+        }
 
-        // 2. Chunking / Truncation
-        // Web pages can be huge. We truncate the text to roughly 15,000 characters
-        // to ensure it safely fits within standard LLM context windows.
-        $chunkedContent = Str::limit($websiteContent, 1500, "\n...[Content Truncated]...");
+        $websiteContent = $jinaResponse->body();
 
-        // 3. Prepare the payload using the standard Chat Completions endpoint
-        // This endpoint supports the 'messages' array and JSON mode for more reliable formatting.
-        $aiPrompt = 'You are an intelligent web-page clipping assistant for a curation platform.\n
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 2: Prepare content
+        |--------------------------------------------------------------------------
+        */
+
+        $this->updateStatus(
+            'preparing',
+            'Preparing webpage for AI analysis...'
+        );
+
+        // $cleanedContent = $this->cleanWebpageContent(
+        //     $websiteContent
+        // );
+
+        $chunkedContent = Str::limit(
+            $cleanedContent,
+            4000,
+            "\n...[Content Truncated]..."
+        );
+        // \Log::debug('AI CONTENT DEBUG', [
+        //     'url'             => $this->url,
+        //     'original_length' => strlen($websiteContent),
+        //     'cleaned_length'  => strlen($cleanedContent),
+        //     'chunked_length'  => strlen($chunkedContent),
+        //     'content'         => $chunkedContent,
+        // ]);
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 3: AI analysis
+        |--------------------------------------------------------------------------
+        */
+
+        $this->updateStatus(
+            'analyzing',
+            'Analyzing webpage with AI...'
+        );
+
+        $aiPrompt = <<<'PROMPT'
+                You are an intelligent web-page clipping assistant for a curation platform.\n
 
                 Your job is to analyze the provided webpage content and create a concise, useful description that explains WHY someone would want to save or clip this page.
 
@@ -74,55 +181,290 @@ class ProcessUrlWithGrokAi implements ShouldQueue
                     - Return ONLY a valid JSON object with exactly one key: "description".
                     - Do not return markdown code fences, explanations, analysis, or any other keys.
 
-                    
+
                     Example style for a product:
                     {"description":"Apple’s MacBook Air page presents the available laptop models, specifications, features, and purchasing options, making it useful for comparing configurations and deciding which model to buy."}
 
                     Example style for a time-sensitive resource:
-                    {"description":"The event page for React Conf provides the conference schedule, speakers, sessions, and event details, making it a useful reference for developers planning to attend or follow the conference."}';
+                    {"description":"The event page for React Conf provides the conference schedule, speakers, sessions, and event details, making it a useful reference for developers planning to attend or follow the conference."}
+            PROMPT;
 
         $response = Http::withToken($groqApiKey)
             ->timeout(60)
-            ->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model'           => 'llama-3.1-8b-instant',    // Suggested: a model with a larger context window
-                'response_format' => ['type' => 'json_object'], // Forces the API to return valid JSON
-                'messages'        => [
-                    [
-                        'role'    => 'system',
-                        'content' => $aiPrompt,
+            ->post(
+                'https://api.groq.com/openai/v1/chat/completions',
+                [
+                    'model'           => 'llama-3.1-8b-instant',
+
+                    'response_format' => [
+                        'type' => 'json_object',
                     ],
-                    [
-                        'role'    => 'user',
-                        'content' => "Task: Analyze the following extracted webpage content and create a useful clipping description.\n\nSource URL: {$this->url}\n\nExtracted Webpage Content:\n {$chunkedContent} ",
+
+                    'max_tokens'      => 200,
+
+                    'messages'        => [
+                        [
+                            'role'    => 'system',
+                            'content' => $aiPrompt,
+                        ],
+                        [
+                            'role'    => 'user',
+                            'content' =>
+                            "Source URL: {$this->url}\n\n" .
+                            "Extracted Webpage Content:\n" .
+                            $chunkedContent,
+                        ],
                     ],
-                ],
-            ]);
+                ]
+            );
 
-        $aiResponse = [
-            'description' => 'Could not analyze URL. Please update manually.',
-        ];
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 4: Handle Groq response
+        |--------------------------------------------------------------------------
+        */
 
-        // 4. Process the AI Response
-        if ($response->successful()) {
-            // Standard path for chat/completions responses
-            $content = $response->json('choices.0.message.content');
+        if (! $response->successful()) {
+            $error = $response->json('error.message') ?? $response->body();
 
-            $decoded = json_decode($content, true);
-
-            if ($decoded && isset($decoded['description'])) {
-                $aiResponse['description'] = trim($decoded['description']);
-            } else {
-                $aiResponse['description'] = $content ?? 'No content returned from AI.';
-            }
-        } else {
-            $error                     = $response->json('error.message') ?? $response->body();
-            $aiResponse['description'] = "API Error: " . $error;
+            throw new \RuntimeException(
+                "Groq API error: {$error}"
+            );
         }
 
-        // 5. Cache the full result and Broadcast
-        Cache::put("ai_idea:{$this->trackingToken}", $aiResponse, now()->addMinutes(15));
+        $content = $response->json(
+            'choices.0.message.content'
+        );
 
-        // This triggers your Reverb/Echo listener in the Vue component
-        event(new AiIdeaGenerated($this->userId, $this->trackingToken, $aiResponse));
+        $decoded = json_decode($content, true);
+
+        if (
+            ! is_array($decoded) ||
+            ! isset($decoded['description'])
+        ) {
+            throw new \RuntimeException(
+                'AI returned an invalid response.'
+            );
+        }
+
+        $description = trim(
+            $decoded['description']
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 5: Completed
+        |--------------------------------------------------------------------------
+        */
+
+        $aiResponse = [
+            'status'      => 'completed',
+            'message'     => 'AI description generated successfully.',
+            'description' => $description,
+        ];
+
+        Cache::put(
+            "ai_idea:{$this->trackingToken}",
+            $aiResponse,
+            now()->addMinutes(15)
+        );
+
+        event(new AiIdeaGenerated(
+            $this->userId,
+            $this->trackingToken,
+            $aiResponse
+        ));
     }
+
+    /**
+     * Called when all attempts fail.
+     */
+    public function failed(Throwable $exception): void
+    {
+        $aiResponse = [
+            'status'      => 'failed',
+            'message'     => 'Unable to analyze this webpage.',
+            'description' => null,
+            'error'       => $exception->getMessage(),
+        ];
+
+        Cache::put(
+            "ai_idea:{$this->trackingToken}",
+            $aiResponse,
+            now()->addMinutes(15)
+        );
+
+        event(new AiIdeaGenerated(
+            $this->userId,
+            $this->trackingToken,
+            $aiResponse
+        ));
+    }
+
+    private function cleanWebpageContent(string $content)
+    {
+        // ------------------------------------------------------------
+        // 1. Remove metadata that isn't useful for AI analysis
+        // ------------------------------------------------------------
+
+        $content = preg_replace(
+            '/^URL Source:.*$/mi',
+            '',
+            $content
+        );
+
+        $content = preg_replace(
+            '/^Published Time:.*$/mi',
+            '',
+            $content
+        );
+
+        // ------------------------------------------------------------
+        // 2. Markdown images
+        //
+        // ![Computer Monitor](https://image-url.jpg)
+        //
+        // becomes:
+        //
+        // Computer Monitor
+        // ------------------------------------------------------------
+
+        $content = preg_replace(
+            '/!\[([^\]]*)\]\([^)]+\)/',
+            '$1',
+            $content
+        );
+
+        // ------------------------------------------------------------
+        // 3. Markdown links
+        //
+        // [GitHub](https://github.com)
+        //
+        // becomes:
+        //
+        // GitHub
+        // ------------------------------------------------------------
+
+        $content = preg_replace(
+            '/\[([^\]]+)\]\([^)]+\)/',
+            '$1',
+            $content
+        );
+
+        // ------------------------------------------------------------
+        // 4. Remove ALL remaining HTTP/HTTPS URLs
+        //
+        // This is important for your use case.
+        // ------------------------------------------------------------
+
+        $content = preg_replace(
+            '#https?://[^\s<>\])]+#iu',
+            '',
+            $content
+        );
+
+        // ------------------------------------------------------------
+        // 5. Remove obvious extraction placeholders
+        // ------------------------------------------------------------
+
+        $content = preg_replace(
+            '/\[#.*?#\]/',
+            '',
+            $content
+        );
+
+        // ------------------------------------------------------------
+        // 6. Remove cookie-consent noise
+        // ------------------------------------------------------------
+
+        $cookiePatterns = [
+            '/cookie consent/iu',
+            '/cookie settings/iu',
+            '/cookie preferences/iu',
+            '/consent selection/iu',
+            '/let[\'’]?s talk cookies/iu',
+            '/necessary cookies/iu',
+            '/preference cookies/iu',
+            '/statistics cookies/iu',
+            '/marketing cookies/iu',
+            '/we use cookies/iu',
+            '/this website uses cookies/iu',
+            '/accept cookies/iu',
+            '/manage cookies/iu',
+        ];
+
+        foreach ($cookiePatterns as $pattern) {
+            $content = preg_replace($pattern, '', $content);
+        }
+
+        // ------------------------------------------------------------
+        // 7. Process individual Markdown lines
+        // ------------------------------------------------------------
+
+        $lines = preg_split('/\R/', $content);
+
+        $cleanLines = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+
+            if ($line === '') {
+                continue;
+            }
+
+            // Remove markdown formatting characters
+            $line = preg_replace('/[*_`~]+/', '', $line);
+
+            // Remove remaining markdown link/image brackets
+            $line = str_replace(
+                ['[', ']'],
+                '',
+                $line
+            );
+
+            // Remove empty lines created by URL removal
+            if (trim($line) === '') {
+                continue;
+            }
+
+            $cleanLines[] = $line;
+        }
+
+        // ------------------------------------------------------------
+        // 8. Remove duplicate lines
+        // ------------------------------------------------------------
+
+        $uniqueLines = [];
+        $seen        = [];
+
+        foreach ($cleanLines as $line) {
+            $normalized = mb_strtolower(
+                preg_replace('/\s+/', ' ', trim($line))
+            );
+
+            if ($normalized === '') {
+                continue;
+            }
+
+            if (isset($seen[$normalized])) {
+                continue;
+            }
+
+            $seen[$normalized] = true;
+            $uniqueLines[]     = $line;
+        }
+
+        $content = implode("\n", $uniqueLines);
+
+        // ------------------------------------------------------------
+        // 9. Normalize whitespace
+        // ------------------------------------------------------------
+
+        $content = preg_replace('/[ \t]+/', ' ', $content);
+
+        $content = preg_replace('/\n{3,}/', "\n\n", $content);
+
+        return trim($content);
+    }
+
 }
