@@ -32,7 +32,7 @@ onMounted(() => {
     window.Echo.private(
         `App.Models.User.${page.props.auth.user.id}`,
     ).notification((notification) => {
-        console.log("Notification received:", notification);
+        // console.log("Notification received:", notification);
         unreadCount.value++;
 
         // Optional: Play a sound

@@ -120,9 +120,9 @@ class ProcessUrlWithGrokAi implements ShouldQueue
             'Preparing webpage for AI analysis...'
         );
 
-        // $cleanedContent = $this->cleanWebpageContent(
-        //     $websiteContent
-        // );
+        $cleanedContent = $this->cleanWebpageContent(
+            $websiteContent
+        );
 
         $chunkedContent = Str::limit(
             $cleanedContent,

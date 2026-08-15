@@ -25,7 +25,7 @@ const props = defineProps({
 
                 <div v-for="note in newNotifications" :key="note.id">
                     <Link
-                        :href="`/index#${note.data.post_id}`"
+                        :href="`${note.data.type=='dm' ? '/chat' :`/index#${note.data.post_id}`} `"
                         class="flex items-center p-4 bg-blue-50 border-l-4 border-blue-500 mb-1"
                     >
                         <div class="mr-4">
@@ -69,7 +69,7 @@ const props = defineProps({
 
                 <div v-for="note in earlierNotifications" :key="note.id">
                     <Link
-                        :href="`/index#${note.data.post_id}`"
+                         :href="`${note.data.type=='dm' ? '/chat' :`/index#${note.data.post_id}`} `"
                         class="flex items-center p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
                     >
                         <div class="mr-4">

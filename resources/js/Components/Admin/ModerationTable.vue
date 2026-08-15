@@ -28,7 +28,7 @@ function initial(name) {
 
 // Manual admin actions have no AI score at all — only automatic runs do.
 function riskLevel(log) {
-    console.log(log)
+    // console.log(log)
     if (log.toxicScore === null && log.hateScore === null) return "manual";
     if (log.riskScore >= 60) return "high";
     if (log.riskScore >= 20) return "medium";

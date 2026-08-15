@@ -668,6 +668,16 @@ const logoutOtherDevices = () => {
                                             </div>
                                         </div>
                                     </div>
+                                                                      <!-- Check DM Button (Glassy Modern Style) -->
+        <Link 
+            href="/chat" 
+            class="mr-auto flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold text-sky-700 bg-white/60 hover:bg-white/90 border border-sky-200/80 backdrop-blur-md shadow-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+        >
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 fill-sky-500">
+                <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+            </svg>
+            <span>Check DM</span>
+        </Link>
                                 </div>
                             </div>
                         </div>
