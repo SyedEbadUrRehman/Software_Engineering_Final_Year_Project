@@ -2,6 +2,7 @@
 
 use App\Events\TestEvent;
 use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\AiIdeaController;
 use App\Http\Controllers\CircleController;
 use App\Http\Controllers\CircleMemberController;
 use App\Http\Controllers\CommentController;
@@ -156,6 +157,9 @@ Route::middleware(['auth', 'verified','2fa'])->group(function () {
         Route::put('/{postId}', 'update')->name('update');
         Route::delete('/{postId}', 'destroy')->name('destroy');
     });
+
+    // AI Idea Generation Route
+    Route::post('/posts/generate-ai-idea', [AiIdeaController::class, 'generate'])->name('posts.generate-ai');
 
 });
 /*
