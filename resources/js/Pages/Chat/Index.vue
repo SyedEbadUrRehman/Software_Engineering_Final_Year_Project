@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick, onUnmounted } from 'vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import MainLayout from '@/Layouts/MainLayout.vue';
@@ -14,6 +14,11 @@ const activeUser = ref(null);
 const messages = ref([]);
 const newMessage = ref('');
 const messagesContainer = ref(null);
+
+// --- NEW: Typing Indicator State ---
+const isTyping = ref(false);
+let typingTimer = null;
+let activeConversationChannel = null;
 
 const fetchContacts = async () => {
     const res = await axios.get('/chat/contacts');
@@ -41,20 +46,53 @@ const selectUser = async (selectedUser) => {
     searchQuery.value = '';
     searchResults.value = [];
 
-    // Reset unread badge locally
     const contact = contacts.value.find(c => c.id === selectedUser.id);
     if (contact) contact.unread_count = 0;
 
     const res = await axios.get(`/chat/${selectedUser.id}/messages`);
     messages.value = res.data;
     scrollToBottom();
+
+    // --- NEW: Join Shared Whisper Channel ---
+    if (activeConversationChannel) {
+        window.Echo.leave(activeConversationChannel);
+    }
+
+    // Always order IDs the same way (smaller first) so both users join the exact same room string
+    const minId = Math.min(user.id, selectedUser.id);
+    const maxId = Math.max(user.id, selectedUser.id);
+    activeConversationChannel = `conversation.${minId}.${maxId}`;
+
+    window.Echo.private(activeConversationChannel)
+        .listenForWhisper('typing', (e) => {
+            if (e.userID === selectedUser.id) {
+                isTyping.value = true;
+                scrollToBottom();
+                
+                // Clear bubble after 2 seconds of silence
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => {
+                    isTyping.value = false;
+                }, 2000);
+            }
+        });
+};
+
+// --- NEW: Send Whisper Event ---
+const sendTypingEvent = () => {
+    if (!activeConversationChannel) return;
+    window.Echo.private(activeConversationChannel)
+        .whisper('typing', {
+            userID: user.id
+        });
 };
 
 const sendMessage = async () => {
     if (!newMessage.value.trim() || !activeUser.value) return;
 
     const tempBody = newMessage.value;
-    newMessage.value = ''; // Instant clear
+    newMessage.value = ''; 
+    isTyping.value = false; // Turn off our own typing indicator
 
     const res = await axios.post(`/chat/${activeUser.value.id}/messages`, {
         body: tempBody
@@ -63,7 +101,6 @@ const sendMessage = async () => {
     messages.value.push(res.data);
     scrollToBottom();
 
-    // Make sure they are in contacts list if it's a new chat
     if (!contacts.value.find(c => c.id === activeUser.value.id)) {
         contacts.value.unshift(activeUser.value);
     }
@@ -76,26 +113,28 @@ const markAsRead = (senderId) => {
 onMounted(() => {
     fetchContacts();
 
-    // Listen on Reverb Private Channel
     window.Echo.private(`chat.${user.id}`)
         .listen('.message.sent', (e) => {
-            
-            // If the message is from the person we are currently chatting with
             if (activeUser.value && activeUser.value.id === e.message.sender_id) {
                 messages.value.push(e.message);
+                isTyping.value = false; // Hide bubble immediately when message arrives
                 scrollToBottom();
                 markAsRead(e.message.sender_id);
             } else {
-                // Background message: Update light blue badge
                 let contact = contacts.value.find(c => c.id === e.message.sender_id);
                 if (contact) {
                     contact.unread_count++;
                 } else {
-                    // New contact messaged us, refresh list
                     fetchContacts();
                 }
             }
         });
+});
+
+onUnmounted(() => {
+    if (activeConversationChannel) {
+        window.Echo.leave(activeConversationChannel);
+    }
 });
 </script>
 
@@ -167,7 +206,7 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Messages Area -->
+                   <!-- Messages Area -->
                     <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
                         <div v-for="msg in messages" :key="msg.id" class="flex" :class="msg.sender_id === user.id ? 'justify-end' : 'justify-start'">
                             <div class="max-w-[70%] px-4 py-2 rounded-2xl text-[15px]" 
@@ -175,13 +214,24 @@ onMounted(() => {
                                 {{ msg.body }}
                             </div>
                         </div>
+
+                        <!-- NEW: Typing Indicator Bubble -->
+                        <div v-if="isTyping" class="flex justify-start mt-1">
+                            <div class="px-4 py-3 bg-blue-50 border-2 border-white shadow-sm text-black rounded-2xl rounded-bl-sm flex items-center gap-1 w-max">
+                                <span class="w-1.5 h-1.5 bg-black rounded-full typing-dot"></span>
+                                <span class="w-1.5 h-1.5 bg-black rounded-full typing-dot animation-delay-150"></span>
+                                <span class="w-1.5 h-1.5 bg-black rounded-full typing-dot animation-delay-300"></span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Input Area -->
                     <div class="p-4 bg-white border-t border-gray-200">
                         <form @submit.prevent="sendMessage" class="flex items-center gap-2">
+                            <!-- NEW: Added @input="sendTypingEvent" -->
                             <input 
                                 v-model="newMessage" 
+                                @input="sendTypingEvent"
                                 type="text" 
                                 placeholder="Type a message..." 
                                 class="w-full bg-gray-100 border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-black transition"
@@ -210,4 +260,16 @@ onMounted(() => {
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 20px; }
+
+/* Typing Animation Styles */
+.typing-dot {
+    animation: typingBounce 1.4s infinite ease-in-out both;
+}
+.animation-delay-150 { animation-delay: -0.32s; }
+.animation-delay-300 { animation-delay: -0.16s; }
+
+@keyframes typingBounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-4px); }
+}
 </style>
