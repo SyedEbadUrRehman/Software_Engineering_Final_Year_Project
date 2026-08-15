@@ -6,6 +6,8 @@ import MainLayout from '@/Layouts/MainLayout.vue';
 import Magnify from "vue-material-design-icons/Magnify.vue";
 import SendOutline from "vue-material-design-icons/Send.vue";
 import ArrowLeft from "vue-material-design-icons/ArrowLeft.vue";
+import Pencil from "vue-material-design-icons/Pencil.vue";
+import TrashCan from "vue-material-design-icons/TrashCan.vue";
 
 const user = usePage().props.auth.user;
 const contacts = ref([]);
@@ -28,6 +30,10 @@ const isTyping = ref(false);
 let typingTimer = null;
 let activeConversationChannel = null;
 
+// --- Edit Message State ---
+const editingMessageId = ref(null);
+const editMessageText = ref('');
+
 const fetchContacts = async () => {
     const res = await axios.get('/chat/contacts');
     contacts.value = res.data;
@@ -45,8 +51,6 @@ const searchUsers = async () => {
 const scrollToBottom = async (force = false) => {
     await nextTick();
     if (messagesContainer.value) {
-        // If force is true (e.g. sending a message or initial load), scroll regardless of hover state.
-        // Otherwise, respect hover state and do not scroll if the user is hovering.
         if (force || !isUserHovering.value) {
             messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
         }
@@ -58,6 +62,7 @@ const selectUser = async (selectedUser) => {
     searchQuery.value = '';
     searchResults.value = [];
     showMobileChat.value = true;
+    editingMessageId.value = null; // reset edit state
 
     const contact = contacts.value.find(c => c.id === selectedUser.id);
     if (contact) contact.unread_count = 0;
@@ -92,6 +97,7 @@ const selectUser = async (selectedUser) => {
 const closeMobileChat = () => {
     showMobileChat.value = false;
     activeUser.value = null;
+    editingMessageId.value = null;
     if (activeConversationChannel) {
         window.Echo.leave(activeConversationChannel);
         activeConversationChannel = null;
@@ -136,6 +142,50 @@ const sendMessage = async () => {
     }
 };
 
+// --- Edit & Delete Functions ---
+const startEdit = (msg) => {
+    editingMessageId.value = msg.id;
+    editMessageText.value = msg.body;
+};
+
+const cancelEdit = () => {
+    editingMessageId.value = null;
+    editMessageText.value = '';
+};
+
+const saveEdit = async (msg) => {
+    if (!editMessageText.value.trim()) return;
+
+    // Optimistic UI update
+    const previousBody = msg.body;
+    msg.body = editMessageText.value;
+    msg.updated_at = new Date().toISOString(); 
+    editingMessageId.value = null;
+
+    try {
+        const res = await axios.put(`/chat/messages/${msg.id}`, {
+            body: editMessageText.value
+        });
+        // Sync with server format
+        const index = messages.value.findIndex(m => m.id === msg.id);
+        if (index !== -1) messages.value[index] = res.data;
+    } catch (error) {
+        msg.body = previousBody; // Revert on failure
+        console.error("Failed to edit message");
+    }
+};
+
+const deleteMsg = async (msgId) => {
+    // Optimistic UI update
+    messages.value = messages.value.filter(m => m.id !== msgId);
+    try {
+        await axios.delete(`/chat/messages/${msgId}`);
+    } catch (error) {
+        console.error("Failed to delete message");
+        // For production, you could re-fetch the conversation here to ensure sync
+    }
+};
+
 const markAsRead = (senderId) => {
     axios.patch(`/chat/${senderId}/read`);
 };
@@ -157,6 +207,19 @@ onMounted(() => {
                 } else {
                     fetchContacts();
                 }
+            }
+        })
+        .listen('.message.edited', (e) => {
+            if (activeUser.value && activeUser.value.id === e.message.sender_id) {
+                const index = messages.value.findIndex(m => m.id === e.message.id);
+                if (index !== -1) {
+                    messages.value[index] = e.message;
+                }
+            }
+        })
+        .listen('.message.deleted', (e) => {
+            if (activeUser.value) {
+                messages.value = messages.value.filter(m => m.id !== e.messageId);
             }
         });
 });
@@ -255,11 +318,40 @@ onUnmounted(() => {
                         @mouseleave="isUserHovering = false"
                         class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar"
                     >
-                        <div v-for="msg in messages" :key="msg.id" class="flex" :class="msg.sender_id === user.id ? 'justify-end' : 'justify-start'">
-                            <div class="max-w-[70%] px-4 py-2 rounded-2xl text-[15px] whitespace-pre-wrap break-words" 
-                                :class="msg.sender_id === user.id ? 'bg-black text-white rounded-br-sm' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm'">
-                                {{ msg.body }}
+                        <div v-for="msg in messages" :key="msg.id" class="flex flex-col group" :class="msg.sender_id === user.id ? 'items-end' : 'items-start'">
+                            
+                            <div class="flex items-center gap-2 max-w-[85%] sm:max-w-[70%]">
+                                <!-- Action Buttons (Hidden by default, appear on hover for sender) -->
+                                <div v-if="msg.sender_id === user.id && editingMessageId !== msg.id" class="hidden group-hover:flex items-center gap-2 text-gray-400 mx-1">
+                                    <button @click="startEdit(msg)" class="hover:text-blue-500 transition"><Pencil :size="16"/></button>
+                                    <button @click="deleteMsg(msg.id)" class="hover:text-red-500 transition"><TrashCan :size="16"/></button>
+                                </div>
+
+                                <div class="px-4 py-2 rounded-2xl text-[15px] whitespace-pre-wrap break-words w-full shadow-sm" 
+                                    :class="msg.sender_id === user.id ? 'bg-black text-white rounded-br-sm' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm'">
+                                    
+                                    <!-- Edit Mode Interface -->
+                                    <div v-if="editingMessageId === msg.id" class="flex flex-col gap-2 min-w-[200px]">
+                                        <textarea 
+                                            v-model="editMessageText" 
+                                            class="text-white bg-transparent focus:ring-0 border-0 no-scrollbar rounded p-2 w-full text-sm resize-none"
+                                            rows="2"
+                                            @keydown.enter.ctrl.exact.prevent="saveEdit(msg)"
+                                        ></textarea>
+                                        <div class="flex justify-end gap-3 mt-1">
+                                            <button @click="cancelEdit" class="text-xs font-bold text-gray-400 hover:text-white transition">Cancel</button>
+                                            <button @click="saveEdit(msg)" class="text-xs font-bold text-green-400 hover:text-green-300 transition">Save</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Standard Message Display -->
+                                    <template v-else>
+                                        {{ msg.body }}
+                                        <!-- <span v-if="msg.created_at !== msg.updated_at" class="text-[10px] opacity-60 italic ml-2 block mt-1" :class="msg.sender_id === user.id ? 'text-right' : 'text-left'">(edited)</span> -->
+                                    </template>
+                                </div>
                             </div>
+
                         </div>
 
                         <!-- Normal Flow Typing Indicator Bubble -->

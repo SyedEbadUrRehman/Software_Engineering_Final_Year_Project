@@ -10,6 +10,8 @@ use App\Notifications\PostActivityNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use App\Events\MessageEdited;
+use App\Events\MessageDeleted;
 
 class ChatController extends Controller
 {
@@ -106,6 +108,39 @@ class ChatController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
         
+        return response()->json(['status' => 'success']);
+    }
+
+    public function update(Request $request, Message $message)
+    {
+        if ($message->sender_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate(['body' => 'required|string']);
+
+        $message->update(['body' => $request->body]);
+
+        // Broadcast to the receiver
+        broadcast(new MessageEdited($message))->toOthers();
+
+        return response()->json($message);
+    }
+
+    public function destroy(Message $message)
+    {
+        if ($message->sender_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $messageId = $message->id;
+        $receiverId = $message->receiver_id;
+
+        $message->delete();
+
+        // Broadcast to the receiver
+        broadcast(new MessageDeleted($messageId, $receiverId))->toOthers();
+
         return response()->json(['status' => 'success']);
     }
 }

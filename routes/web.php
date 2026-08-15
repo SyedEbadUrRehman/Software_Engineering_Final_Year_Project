@@ -21,7 +21,6 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -32,9 +31,9 @@ use Inertia\Inertia;
 | contains the "web" middleware group. Now create something great!
 |
 */
- Route::get('/', function () {
-        return inertia::render('Index');
-    });
+Route::get('/', function () {
+    return inertia::render('Index');
+});
 Route::get('/privacy-policy', function () {
     return Inertia::render('PrivacyPolicy');
 })->name('privacy.policy');
@@ -42,10 +41,9 @@ Route::get('/download-extension', function () {
     return Inertia::render('DownloadExtension');
 })->name('extension.download');
 
-
 // Main Group: Protected by 'auth' and '2fa' middlewares
 
-Route::middleware(['auth', 'verified','2fa'])->group(function () {
+Route::middleware(['auth', 'verified', '2fa'])->group(function () {
 
     // ------------------------------------------------------------------
     // General Routes
@@ -169,10 +167,11 @@ Route::middleware(['auth', 'verified','2fa'])->group(function () {
         Route::get('/{user}/messages', 'getMessages')->name('messages');
         Route::post('/{user}/messages', 'sendMessage')->name('send');
         Route::patch('/{user}/read', 'markAsRead')->name('read');
+        Route::put('/messages/{message}', 'update')->name('update');
+        Route::delete('/messages/{message}', 'destroy')->name('destroy');
     });
 
-
-    });
+});
 /*
 |--------------------------------------------------------------------------
 | Admin Routes
