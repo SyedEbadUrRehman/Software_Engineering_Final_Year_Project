@@ -26,3 +26,7 @@ Broadcast::channel('circle.{circleId}', function ($user, $circleId) {
         ->where('member_id', $user->id)
         ->exists();
 });
+
+Broadcast::channel('chat.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});

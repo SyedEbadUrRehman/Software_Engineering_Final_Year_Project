@@ -161,7 +161,18 @@ Route::middleware(['auth', 'verified','2fa'])->group(function () {
     // AI Idea Generation Route
     Route::post('/posts/generate-ai-idea', [AiIdeaController::class, 'generate'])->name('posts.generate-ai');
 
-});
+// Chat Routes
+    Route::prefix('chat')->name('chat.')->controller(\App\Http\Controllers\ChatController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/contacts', 'getContacts')->name('contacts');
+        Route::get('/search', 'search')->name('search');
+        Route::get('/{user}/messages', 'getMessages')->name('messages');
+        Route::post('/{user}/messages', 'sendMessage')->name('send');
+        Route::patch('/{user}/read', 'markAsRead')->name('read');
+    });
+
+
+    });
 /*
 |--------------------------------------------------------------------------
 | Admin Routes
