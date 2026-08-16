@@ -6,6 +6,7 @@ use App\Http\Controllers\AiIdeaController;
 use App\Http\Controllers\CircleController;
 use App\Http\Controllers\CircleMemberController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\FollowListController;
 use App\Http\Controllers\HomeController;
@@ -41,6 +42,11 @@ Route::get('/privacy-policy', function () {
 Route::get('/download-extension', function () {
     return Inertia::render('DownloadExtension');
 })->name('extension.download');
+
+Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
+Route::post('/contact', [ContactController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('contact.store');
 
 // Main Group: Protected by 'auth' and '2fa' middlewares
 

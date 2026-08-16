@@ -159,6 +159,9 @@ const scrollToTop = () => {
             <p>© 2026. All rights reserved.</p>
 
             <div class="flex gap-8 mt-4 md:mt-0">
+                <a :href="route('contact.index')" class="hover:text-black transition"
+                    >Contact Us</a
+                >
                 <a :href="route('privacy.policy')" class="hover:text-black transition"
                     >Privacy Policy</a
                 >

@@ -170,14 +170,14 @@ const textareaInput = (e) => {
                                 <div class="postControllerOverlay relative">
                                     <div
                                         v-if="comment.status === 'flagged'"
-                                        class="absolute backdrop-blur-md gap-2 shadow-md bg-white/30 rounded-sm w-full h-full flex items-center justify-center"
+                                        class="absolute backdrop-blur-md gap-2 shadow-md bg-white/30 rounded-sm w-full h-full flex  items-center justify-center"
                                     >
-                                        <p class="font-bold text-lg">
+                                        <p class="font-bold text-xs md:text-lg">
                                             This Comment may contains sensitive
                                             Content
                                         </p>
                                         <p
-                                            class="flex gap-2 items-center text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
+                                            class="flex gap-2 items-center text-xs md:text-lg my-4 text-blue-500 hover:text-gray-900 cursor-pointer"
                                             @click="comment.status = 'allowed'"
                                         >
                                             See Anyway
