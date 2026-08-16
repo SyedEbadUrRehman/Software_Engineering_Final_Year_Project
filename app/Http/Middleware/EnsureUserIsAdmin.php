@@ -9,17 +9,16 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureUserIsAdmin
 {
     /**
-     * The only account allowed into the admin panel.
-     * Move this to config/services.php or .env (ADMIN_EMAIL) if you
-     * ever need more than one admin.
+     * Handle an incoming request.
      */
-    protected const ADMIN_EMAIL = 'ebaddev@gmail.com';
-
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        
+        // Fetch the admin email from your configuration (or directly from env)
+        $adminEmail = config('app.admin_email');
 
-        if (! $user || strcasecmp($user->email, self::ADMIN_EMAIL) !== 0) {
+        if (! $user || strcasecmp($user->email, $adminEmail) !== 0) {
             abort(403, 'You are not authorized to view the admin panel.');
         }
 

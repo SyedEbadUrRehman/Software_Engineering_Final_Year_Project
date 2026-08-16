@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import { Head, router, usePage } from "@inertiajs/vue3";
+import { Head, router, usePage ,Link} from "@inertiajs/vue3";
 
 import GlassCard from "@/Components/Admin/GlassCard.vue";
 import FilterTabs from "@/Components/Admin/FilterTabs.vue";
@@ -86,6 +86,12 @@ function closeModal() {
 
         <header class="admin-header">
             <div class="header-wave" aria-hidden="true"></div>
+            <Link :href="route('home.index')">
+               <img
+                   class="w-[150px] cursor-pointer"
+                   src="/SiteClipLogo.png"
+               />
+           </Link>
             <div class="header-content">
                 <div>
                     <p class="eyebrow">Content Moderation</p>

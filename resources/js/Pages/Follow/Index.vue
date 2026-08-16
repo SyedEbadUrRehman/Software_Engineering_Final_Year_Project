@@ -159,7 +159,7 @@ const followUser = (userId) => {
                         <div
                             v-for="user in filteredFollowing"
                             :key="user.id"
-                            class="group relative flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl hover:shadow-md transition-all duration-300"
+                            class="group relative flex cursor-pointer items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl hover:shadow-md transition-all duration-300"
                         >
                             <img
                                 :src="user.file ?? '/default.png'"

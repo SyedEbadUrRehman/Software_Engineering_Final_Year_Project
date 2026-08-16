@@ -7,6 +7,7 @@ use App\Http\Controllers\CircleController;
 use App\Http\Controllers\CircleMemberController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\FollowController;
+use App\Http\Controllers\FollowListController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\NotificationController;
@@ -87,7 +88,7 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
             Route::post('/', 'store')->name('store');
             Route::delete('/{id}', 'destroy')->name('destroy');
             Route::put('/{post}/url', 'updateUrl')->name('updateUrl');
-            Route::put('/{post}',  'update')->name('posts.update');
+            Route::put('/{post}', 'update')->name('posts.update');
         });
 
         Route::post('/{post}/feedback', [PostFeedbackController::class, 'store'])->name('feedback.store');
@@ -160,7 +161,7 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
     // AI Idea Generation Route
     Route::post('/posts/generate-ai-idea', [AiIdeaController::class, 'generate'])->name('posts.generate-ai');
 
-// Chat Routes
+    // Chat Routes
     Route::prefix('chat')->name('chat.')->controller(\App\Http\Controllers\ChatController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/contacts', 'getContacts')->name('contacts');
@@ -172,6 +173,8 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         Route::delete('/messages/{message}', 'destroy')->name('destroy');
     });
 
+    // follower check
+    Route::get('/followers', [FollowListController::class, 'followers'])->name('followers.index');
 });
 /*
 |--------------------------------------------------------------------------

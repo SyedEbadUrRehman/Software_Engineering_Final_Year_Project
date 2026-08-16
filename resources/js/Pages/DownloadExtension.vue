@@ -132,7 +132,7 @@ function toggleStep(i) {
 </script>
 
 <template>
-    <Head title="Download Extension - SiteClip" />
+    <Head title="Download Extension " />
     <Header />
 
     <main>

@@ -801,7 +801,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Head title="SiteClip" />
+    <Head title="Search" />
 
     <MainLayout>
         <div
