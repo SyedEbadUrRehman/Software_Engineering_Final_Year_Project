@@ -6,11 +6,12 @@ import MainLayout from "@/Layouts/MainLayout.vue";
 
 import LikesSection from "@/Components/LikesSection.vue";
 import ShowPostOverlay from "@/Components/ShowPostOverlay.vue";
+import EditPostOverlay from "@/Components/EditPostOverlay.vue";
+import ShowPostOptionsOverlay from "@/Components/ShowPostOptionsOverlay.vue";
 
 import DotsHorizontal from "vue-material-design-icons/DotsHorizontal.vue";
 import Close from "vue-material-design-icons/Close.vue";
 import ArrowRight from "vue-material-design-icons/ArrowRight.vue";
-
 
 let wWidth = ref(window.innerWidth);
 let currentPost = ref(null);
@@ -28,13 +29,34 @@ const upgradeUrlPostId = ref(null);
 const newUpgradeUrl = ref("");
 
 const user = usePage().props.auth.user;
-const props = defineProps({ posts: Object, searchQuery: String , myCircleIds: Array});
+const props = defineProps({
+    posts: Object,
+    searchQuery: String,
+    myCircleIds: Array,
+});
 const { posts } = toRefs(props);
 
 // search feature
 
 const search = ref(props.searchQuery || "");
+let activeOptionsPost = ref(null);
+let showEditPostOverlay = ref(false);
 
+// New Reverb listener helper for updates
+const handlePostUpdate = (eventData) => {
+    const existingPostIndex = posts.value.data.findIndex(
+        (p) => p.id === eventData.id,
+    );
+    if (existingPostIndex !== -1) {
+        posts.value.data[existingPostIndex] = {
+            ...posts.value.data[existingPostIndex],
+            ...eventData,
+        };
+    }
+    if (currentPost.value && currentPost.value.id === eventData.id) {
+        currentPost.value = { ...currentPost.value, ...eventData };
+    }
+};
 // ✅ Debounced Search Request
 watch(
     search,
@@ -439,47 +461,52 @@ const clearUpgradeUrl = () => {
     newUpgradeUrl.value = "";
 };
 
-
 const submitUrlUpdate = (postId) => {
-    router.put(`/posts/${postId}/url`, { new_url: newUpgradeUrl.value }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            // Optimistically update the post array in the UI instantly
-            // const targetPost = posts.value.data.find((p) => p.id === postId);
-            // if (targetPost) {
-            //     if (targetPost.url) {
-            //         targetPost.url = targetPost.url + ' | ' + newUpgradeUrl.value;
-            //     } else {
-            //         targetPost.url = newUpgradeUrl.value;
-            //     }
-            // }
-            
-            // Close the glassy badge
-            clearUpgradeUrl();
-        }
-    });
+    router.put(
+        `/posts/${postId}/url`,
+        { new_url: newUpgradeUrl.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                // Optimistically update the post array in the UI instantly
+                // const targetPost = posts.value.data.find((p) => p.id === postId);
+                // if (targetPost) {
+                //     if (targetPost.url) {
+                //         targetPost.url = targetPost.url + ' | ' + newUpgradeUrl.value;
+                //     } else {
+                //         targetPost.url = newUpgradeUrl.value;
+                //     }
+                // }
+
+                // Close the glassy badge
+                clearUpgradeUrl();
+            },
+        },
+    );
 };
 // --- NEW: Open all piped URLs in different tabs ---
 const openAllUrls = (urlString) => {
     if (!urlString) return;
 
     // Split the string by '|', remove extra spaces, and filter out any empty ones
-    const urls = urlString.split('|').map(url => url.trim()).filter(url => url !== "");
-console.log(urls)
-    urls.forEach(url => {
+    const urls = urlString
+        .split("|")
+        .map((url) => url.trim())
+        .filter((url) => url !== "");
+    console.log(urls);
+    urls.forEach((url) => {
         // Safety check: ensure the URL starts with http:// or https:// so it doesn't break routing
         let finalUrl = url;
         if (!/^https?:\/\//i.test(finalUrl)) {
-            finalUrl = 'http://' + finalUrl;
+            finalUrl = "http://" + finalUrl;
         }
 
         // Open in a new tab
-        window.open(finalUrl, '_blank');
+        window.open(finalUrl, "_blank");
     });
 };
 
-// real time implementation 
-
+// real time implementation
 
 // --- HELPER FUNCTION ---
 // This finds the post in the list and updates just its likes
@@ -521,8 +548,10 @@ const handleReminderSent = (eventData) => {
 
     if (post) {
         // Find the specific reminder for the current user
-        const reminder = (post.reminders || []).find((r) => r.user_id === user.id);
-        
+        const reminder = (post.reminders || []).find(
+            (r) => r.user_id === user.id,
+        );
+
         if (reminder) {
             // Updating this value will automatically trigger the UI change
             // to show the TimerCheckOutline (sent/due) icon!
@@ -614,6 +643,10 @@ onMounted(() => {
         .listen(".post.url.updated", (e) => {
             handleUrlUpdate(e);
         })
+         // NEW: Listen for full updates on my own posts
+        .listen('.post.updated', (e) => { 
+            handlePostUpdate(e.post);
+         })
         .listen(".follower.post.shared", (e) => {
             // Find if the post already exists in this user's current feed array
             const existingPostIndex = posts.value.data.findIndex(
@@ -749,6 +782,10 @@ onMounted(() => {
                 .listen(".post.url.updated", (e) => {
                     handleUrlUpdate(e);
                 })
+                // 👉 ADD THIS HERE: Listen for text edits on shared posts
+                .listen(".post.updated", (e) => {
+                    handlePostUpdate(e.post);
+                })
                 .error((error) => {
                     console.error("Channel Error:", error);
                 });
@@ -756,12 +793,11 @@ onMounted(() => {
     }
 });
 
-onUnmounted (() => {
+onUnmounted(() => {
     // Cleanup
     window.Echo.leave(`App.Models.User.${user.id}`);
     props.myCircleIds.forEach((id) => window.Echo.leave(`circle.${id}`));
 });
-
 </script>
 
 <template>
@@ -769,7 +805,7 @@ onUnmounted (() => {
 
     <MainLayout>
         <div
-            class="md:min-w-[600px] w-full mx-auto lg:pl-0 md:pl-[80px] pl-0 relative"
+            class="md:min-w-[600px] mx-auto lg:pl-0 md:pl-[80px] pl-0 relative"
         >
             <div
                 class="sticky md:top-0 top-[60px] w-full text-left z-10 bg-white flex gap-5 flex-col md:pt-10 pt-4"
@@ -839,7 +875,7 @@ onUnmounted (() => {
                     <div
                         v-if="user.id === post.user.id"
                         @click="addURLReqFun(post.id)"
-                        class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#0095F6] text-white text-2xl z-10 shadow-md"
+                        class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#0095F6] text-white text-2xl z-[8] shadow-md"
                     >
                         +
                     </div>
@@ -877,6 +913,7 @@ onUnmounted (() => {
                             @click="
                                 showDeleteConfirm = true;
                                 deletePosId = post.id;
+                                activeOptionsPost = post;
                             "
                         />
                     </div>
@@ -905,7 +942,13 @@ onUnmounted (() => {
                                 class="flex gap-2 items-center text-lg text-blue-500 hover:text-gray-900 cursor-pointer w-max"
                             >
                                 <div>
-                                    Visit Site{{ post.url.includes('|') ? 's (' + post.url.split('|').length + ')' : '' }}
+                                    Visit Site{{
+                                        post.url.includes("|")
+                                            ? "s (" +
+                                              post.url.split("|").length +
+                                              ")"
+                                            : ""
+                                    }}
                                 </div>
                                 <ArrowRight :size="22" />
                             </div>
@@ -940,7 +983,8 @@ onUnmounted (() => {
                                 class="text-gray-500 font-extrabold py-1"
                                 v-if="post.user.id === user.id"
                             >
-                                Shared in {{ post.shared_circles_count }} circles
+                                Shared in
+                                {{ post.shared_circles_count }} circles
                             </button>
                         </div>
                     </div>
@@ -992,7 +1036,10 @@ onUnmounted (() => {
                                     class="text-gray-300 font-bold normal-case tracking-normal hidden md:inline"
                                 >
                                     — you chose: "
-                                    {{ feedbackLabels[post.auth_user_feedback] }} "
+                                    {{
+                                        feedbackLabels[post.auth_user_feedback]
+                                    }}
+                                    "
                                 </span>
                             </div>
 
@@ -1034,10 +1081,12 @@ onUnmounted (() => {
                             </label>
                         </div>
                         <div
-                            class="flex justify-between text-[10px] mt-3 font-bold text-gray-300  px-1"
+                            class="flex justify-between text-[10px] mt-3 font-bold text-gray-300 px-1"
                         >
                             <span>1 = mean you realy like that content</span>
-                            <span>10 = mean you realy dislike that content</span>
+                            <span
+                                >10 = mean you realy dislike that content</span
+                            >
                         </div>
                     </div>
 
@@ -1217,33 +1266,21 @@ onUnmounted (() => {
         "
     />
 
-    <div
+    <!-- Replaced hardcoded HTML with dynamic component -->
+    <ShowPostOptionsOverlay
         v-if="showDeleteConfirm"
-        id="ShowPostOptionsOverlay"
-        class="fixed flex items-center z-50 top-0 left-0 w-full h-screen bg-[#000000] bg-opacity-60 p-3"
-    >
-        <div
-            class="max-w-sm w-full mx-auto mt-10 bg-white rounded-xl text-center"
-        >
-            <button
-                @click="
-                    deleteFunc({ id: deletePosId, deleteType: 'Post' });
-                    showDeleteConfirm = false;
-                    deletePosId = null;
-                "
-                class="font-extrabold w-full text-red-600 p-3 text-lg border-b border-b-gray-300 cursor-pointer"
-            >
-                Delete Post
-            </button>
-            <div
-                class="p-3 text-lg cursor-pointer"
-                @click="
-                    showDeleteConfirm = false;
-                    deletePosId = null;
-                "
-            >
-                Cancel
-            </div>
-        </div>
-    </div>
+        :deleteType="'Post'"
+        :id="deletePosId"
+        :postObj="activeOptionsPost"
+        @deleteSelected="deleteFunc($event); showDeleteConfirm = false; deletePosId = null; activeOptionsPost = null;"
+        @editSelected="showEditPostOverlay = true; showDeleteConfirm = false;"
+        @close="showDeleteConfirm = false; deletePosId = null; activeOptionsPost = null;"
+    />
+
+    <!-- New Edit Overlay -->
+    <EditPostOverlay 
+        v-if="showEditPostOverlay"
+        :post="activeOptionsPost"
+        @close="showEditPostOverlay = false; activeOptionsPost = null;"
+    />
 </template>

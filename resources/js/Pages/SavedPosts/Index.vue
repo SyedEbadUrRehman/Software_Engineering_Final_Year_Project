@@ -5,6 +5,8 @@ import MainLayout from "@/Layouts/MainLayout.vue";
 
 import LikesSection from "@/Components/LikesSection.vue";
 import ShowPostOverlay from "@/Components/ShowPostOverlay.vue";
+import EditPostOverlay from "@/Components/EditPostOverlay.vue";
+import ShowPostOptionsOverlay from "@/Components/ShowPostOptionsOverlay.vue";
 
 import DotsHorizontal from "vue-material-design-icons/DotsHorizontal.vue";
 import Close from "vue-material-design-icons/Close.vue";
@@ -27,8 +29,31 @@ const upgradeUrlPostId = ref(null);
 const newUpgradeUrl = ref("");
 
 const user = usePage().props.auth.user;
-const props = defineProps({ posts: Object, allUsers: Object , myCircleIds: Array});
+const props = defineProps({
+    posts: Object,
+    allUsers: Object,
+    myCircleIds: Array,
+});
 const { posts, allUsers } = toRefs(props);
+
+let activeOptionsPost = ref(null);
+let showEditPostOverlay = ref(false);
+
+// New Reverb listener helper for updates
+const handlePostUpdate = (eventData) => {
+    const existingPostIndex = posts.value.data.findIndex(
+        (p) => p.id === eventData.id,
+    );
+    if (existingPostIndex !== -1) {
+        posts.value.data[existingPostIndex] = {
+            ...posts.value.data[existingPostIndex],
+            ...eventData,
+        };
+    }
+    if (currentPost.value && currentPost.value.id === eventData.id) {
+        currentPost.value = { ...currentPost.value, ...eventData };
+    }
+};
 
 const toggleShare = async (postId) => {
     if (openShareId.value === postId) {
@@ -207,7 +232,6 @@ const unshareFromFollowers = (post) => {
         });
 };
 
-
 // real time event listener by echo
 
 // --- HELPER FUNCTION ---
@@ -250,8 +274,10 @@ const handleReminderSent = (eventData) => {
 
     if (post) {
         // Find the specific reminder for the current user
-        const reminder = (post.reminders || []).find((r) => r.user_id === user.id);
-        
+        const reminder = (post.reminders || []).find(
+            (r) => r.user_id === user.id,
+        );
+
         if (reminder) {
             // Updating this value will automatically trigger the UI change
             // to show the TimerCheckOutline (sent/due) icon!
@@ -306,7 +332,6 @@ const handleUrlUpdate = (eventData) => {
     }
 };
 
-
 onMounted(() => {
     window.addEventListener("resize", () => {
         wWidth.value = window.innerWidth;
@@ -319,7 +344,7 @@ onMounted(() => {
         }
     });
 
-  // 1. MY USER CHANNEL
+    // 1. MY USER CHANNEL
     window.Echo.private(`App.Models.User.${user.id}`)
         // A. Post Created (Sync other tabs)
         .listen(".post.created", (e) => {
@@ -349,6 +374,10 @@ onMounted(() => {
         .listen(".post.url.updated", (e) => {
             handleUrlUpdate(e);
         })
+         // NEW: Listen for full updates on my own posts
+        .listen('.post.updated', (e) => { 
+            handlePostUpdate(e.post);
+         })
         .listen(".follower.post.shared", (e) => {
             // Find if the post already exists in this user's current feed array
             const existingPostIndex = posts.value.data.findIndex(
@@ -484,12 +513,15 @@ onMounted(() => {
                 .listen(".post.url.updated", (e) => {
                     handleUrlUpdate(e);
                 })
+                // 👉 ADD THIS HERE: Listen for text edits on shared posts
+                .listen(".post.updated", (e) => {
+                    handlePostUpdate(e.post);
+                })
                 .error((error) => {
                     console.error("Channel Error:", error);
                 });
         });
     }
-
 });
 
 onUnmounted(() => {
@@ -640,7 +672,7 @@ const toggleReminder = (postId) => {
 };
 
 const hasReminder = (post) => {
-    return (post.reminders || []).some(r => r.user_id === user.id);
+    return (post.reminders || []).some((r) => r.user_id === user.id);
 };
 
 // 1. SET (Create)
@@ -659,7 +691,7 @@ const submitReminder = (postId) => {
                 openReminderId.value = null;
                 reminderDate.value = "";
             },
-        }
+        },
     );
 };
 
@@ -678,22 +710,19 @@ const updateReminder = (postId) => {
                 openReminderId.value = null;
                 reminderDate.value = "";
             },
-        }
+        },
     );
 };
 
 // 3. DELETE
 const deleteReminder = (postId) => {
-    router.delete(
-        `/post-reminders/${postId}`,
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                openReminderId.value = null;
-                reminderDate.value = "";
-            },
-        }
-    );
+    router.delete(`/post-reminders/${postId}`, {
+        preserveScroll: true,
+        onFinish: () => {
+            openReminderId.value = null;
+            reminderDate.value = "";
+        },
+    });
 };
 // upgrade url fun logic
 const addURLReqFun = (postId) => {
@@ -708,39 +737,40 @@ const clearUpgradeUrl = () => {
     newUpgradeUrl.value = "";
 };
 
-
 const submitUrlUpdate = (postId) => {
-    router.put(`/posts/${postId}/url`, { new_url: newUpgradeUrl.value }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            // Close the glassy badge
-            clearUpgradeUrl();
-        }
-    });
+    router.put(
+        `/posts/${postId}/url`,
+        { new_url: newUpgradeUrl.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                // Close the glassy badge
+                clearUpgradeUrl();
+            },
+        },
+    );
 };
 // --- NEW: Open all piped URLs in different tabs ---
 const openAllUrls = (urlString) => {
     if (!urlString) return;
 
     // Split the string by '|', remove extra spaces, and filter out any empty ones
-    const urls = urlString.split('|').map(url => url.trim()).filter(url => url !== "");
-console.log(urls)
-    urls.forEach(url => {
+    const urls = urlString
+        .split("|")
+        .map((url) => url.trim())
+        .filter((url) => url !== "");
+    console.log(urls);
+    urls.forEach((url) => {
         // Safety check: ensure the URL starts with http:// or https:// so it doesn't break routing
         let finalUrl = url;
         if (!/^https?:\/\//i.test(finalUrl)) {
-            finalUrl = 'http://' + finalUrl;
+            finalUrl = "http://" + finalUrl;
         }
 
         // Open in a new tab
-        window.open(finalUrl, '_blank');
+        window.open(finalUrl, "_blank");
     });
 };
-
-
-
-
-
 </script>
 
 <template>
@@ -770,7 +800,7 @@ console.log(urls)
                     <div
                         v-if="user.id === post.user.id"
                         @click="addURLReqFun(post.id)"
-                        class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#0095F6] text-white text-2xl z-10 shadow-md"
+                        class="absolute cursor-pointer sm:hidden -right-[6px] w-8 h-8 flex items-center justify-center -top-[6px] rounded-full bg-[#0095F6] text-white text-2xl z-[8] shadow-md"
                     >
                         +
                     </div>
@@ -808,9 +838,9 @@ console.log(urls)
                             @click="
                                 showDeleteConfirm = true;
                                 deletePosId = post.id;
+                                activeOptionsPost = post;
                             "
                         />
-                      
                     </div>
                     <div class="postControllerOverlay relative">
                         <div
@@ -837,7 +867,13 @@ console.log(urls)
                                 class="flex gap-2 items-center text-lg text-blue-500 hover:text-gray-900 cursor-pointer w-max"
                             >
                                 <div>
-                                    Visit Site{{ post.url.includes('|') ? 's (' + post.url.split('|').length + ')' : '' }}
+                                    Visit Site{{
+                                        post.url.includes("|")
+                                            ? "s (" +
+                                              post.url.split("|").length +
+                                              ")"
+                                            : ""
+                                    }}
                                 </div>
                                 <ArrowRight :size="22" />
                             </div>
@@ -850,31 +886,32 @@ console.log(urls)
                             @feedbackScore="toggleFeedBackScore($event)"
                             @comment="openOverlayToggler(post)"
                             @saved="toggleSave"
-                             @reminder="toggleReminder($event)"
+                            @reminder="toggleReminder($event)"
                         />
 
                         <div class="text-black font-extrabold py-1">
                             {{ post.likes.length }} likes
                         </div>
 
-                    <div class="flex justify-between gap-1">
-                        <button
-                            @click="
-                                currentPost = post;
-                                openOverlay = true;
-                            "
-                            class="text-gray-500 font-extrabold py-1"
-                        >
-                            View all {{ post.comments.length }} comments
-                        </button>
+                        <div class="flex justify-between gap-1">
+                            <button
+                                @click="
+                                    currentPost = post;
+                                    openOverlay = true;
+                                "
+                                class="text-gray-500 font-extrabold py-1"
+                            >
+                                View all {{ post.comments.length }} comments
+                            </button>
 
-                        <button
-                            class="text-gray-500 font-extrabold py-1"
-                            v-if="post.user.id === user.id"
-                        >
-                            Shared in {{ post.shared_circles_count }} circles
-                        </button>
-                    </div>
+                            <button
+                                class="text-gray-500 font-extrabold py-1"
+                                v-if="post.user.id === user.id"
+                            >
+                                Shared in
+                                {{ post.shared_circles_count }} circles
+                            </button>
+                        </div>
                     </div>
 
                     <div
@@ -1015,7 +1052,10 @@ console.log(urls)
                                     class="text-gray-300 font-bold normal-case tracking-normal hidden md:inline"
                                 >
                                     — you chose: "
-                                    {{ feedbackLabels[post.auth_user_feedback] }} "
+                                    {{
+                                        feedbackLabels[post.auth_user_feedback]
+                                    }}
+                                    "
                                 </span>
                             </div>
 
@@ -1057,69 +1097,72 @@ console.log(urls)
                             </label>
                         </div>
                         <div
-                            class="flex justify-between text-[10px] mt-3 font-bold text-gray-300  px-1"
+                            class="flex justify-between text-[10px] mt-3 font-bold text-gray-300 px-1"
                         >
                             <span>1 = mean you realy like that content</span>
-                            <span>10 = mean you realy dislike that content</span>
+                            <span
+                                >10 = mean you realy dislike that content</span
+                            >
                         </div>
                     </div>
-                       <div
-                    v-if="openReminderId === post.id"
-                    class="px-4 pb-4 border-t border-gray-100 pt-3 transition-all duration-300"
-                >
                     <div
-                        class="bg-gray-50 p-3 rounded-lg border border-gray-200"
+                        v-if="openReminderId === post.id"
+                        class="px-4 pb-4 border-t border-gray-100 pt-3 transition-all duration-300"
                     >
-                        <div class="flex items-center justify-between">
-                            <div class="text-xs font-bold mb-2 text-gray-700">
-                                Set Due Date
-                                <span class="text-gray-400 font-normal"
-                                    >(Reminder sent 12h before)</span
+                        <div
+                            class="bg-gray-50 p-3 rounded-lg border border-gray-200"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div
+                                    class="text-xs font-bold mb-2 text-gray-700"
                                 >
+                                    Set Due Date
+                                    <span class="text-gray-400 font-normal"
+                                        >(Reminder sent 12h before)</span
+                                    >
+                                </div>
+                                <Close
+                                    @click="toggleReminder(post.id)"
+                                    class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-2"
+                                />
                             </div>
-                            <Close
-                                @click="toggleReminder(post.id)"
-                                class="p-1 rounded-full hover:text-[red] transition-colors hover:bg-gray-400 hover:bg-opacity-30 cursor-pointer -translate-y-2"
-                            />
-                        </div>
-                        <div class="flex gap-2 items-center">
-                            <input
-                                type="date"
-                                v-model="reminderDate"
-                                class="flex-1 border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                            />
-                            <div
-                                v-if="!hasReminder(post)"
-                                class="flex gap-3 items-center justify-end"
-                            >
-                                <button
-                                    @click="submitReminder(post.id)"
-                                    class="bg-blue-500 hover:bg-blue-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                            <div class="flex gap-2 items-center">
+                                <input
+                                    type="date"
+                                    v-model="reminderDate"
+                                    class="flex-1 border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                                />
+                                <div
+                                    v-if="!hasReminder(post)"
+                                    class="flex gap-3 items-center justify-end"
                                 >
-                                    Set
-                                </button>
-                            </div>
-                            <div
-                                v-else
-                                class="flex gap-3 items-center justify-end"
-                            >
-                                <button
-                                    @click="deleteReminder(post.id)"
-                                    class="bg-red-500 hover:bg-red-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                    <button
+                                        @click="submitReminder(post.id)"
+                                        class="bg-blue-500 hover:bg-blue-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                    >
+                                        Set
+                                    </button>
+                                </div>
+                                <div
+                                    v-else
+                                    class="flex gap-3 items-center justify-end"
                                 >
-                                    Delete
-                                </button>
-                                <button
-                                    @click="updateReminder(post.id)"
-                                    class="bg-blue-500 hover:bg-blue-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
-                                >
-                                    Update
-                                </button>
+                                    <button
+                                        @click="deleteReminder(post.id)"
+                                        class="bg-red-500 hover:bg-red-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                    >
+                                        Delete
+                                    </button>
+                                    <button
+                                        @click="updateReminder(post.id)"
+                                        class="bg-blue-500 hover:bg-blue-600 transition-colors text-white text-sm font-bold px-4 py-2 rounded-md"
+                                    >
+                                        Update
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
                 </div>
             </div>
             <div class="pb-20"></div>
@@ -1138,37 +1181,46 @@ console.log(urls)
             openOverlay = false;
         "
         @closeOverlay="openOverlay = false"
-         @openReminder="toggleReminder($event); openOverlay = false;"
-         @openFeedbackScore="toggleFeedBackScore($event); openOverlay = false;"
+        @openReminder="
+            toggleReminder($event);
+            openOverlay = false;
+        "
+        @openFeedbackScore="
+            toggleFeedBackScore($event);
+            openOverlay = false;
+        "
     />
 
-    <div
+    <!-- Replaced hardcoded HTML with dynamic component -->
+    <ShowPostOptionsOverlay
         v-if="showDeleteConfirm"
-        id="ShowPostOptionsOverlay"
-        class="fixed flex items-center z-50 top-0 left-0 w-full h-screen bg-[#000000] bg-opacity-60 p-3"
-    >
-        <div
-            class="max-w-sm w-full mx-auto mt-10 bg-white rounded-xl text-center"
-        >
-            <button
-                @click="
-                    deleteFunc({ id: deletePosId, deleteType: 'Post' });
-                    showDeleteConfirm = false;
-                    deletePosId = null;
-                "
-                class="font-extrabold w-full text-red-600 p-3 text-lg border-b border-b-gray-300 cursor-pointer"
-            >
-                Delete Post
-            </button>
-            <div
-                class="p-3 text-lg cursor-pointer"
-                @click="
-                    showDeleteConfirm = false;
-                    deletePosId = null;
-                "
-            >
-                Cancel
-            </div>
-        </div>
-    </div>
+        :deleteType="'Post'"
+        :id="deletePosId"
+        :postObj="activeOptionsPost"
+        @deleteSelected="
+            deleteFunc($event);
+            showDeleteConfirm = false;
+            deletePosId = null;
+            activeOptionsPost = null;
+        "
+        @editSelected="
+            showEditPostOverlay = true;
+            showDeleteConfirm = false;
+        "
+        @close="
+            showDeleteConfirm = false;
+            deletePosId = null;
+            activeOptionsPost = null;
+        "
+    />
+
+    <!-- New Edit Overlay -->
+    <EditPostOverlay
+        v-if="showEditPostOverlay"
+        :post="activeOptionsPost"
+        @close="
+            showEditPostOverlay = false;
+            activeOptionsPost = null;
+        "
+    />
 </template>
