@@ -194,7 +194,7 @@ class ProcessUrlWithGrokAi implements ShouldQueue
             ->post(
                 'https://api.groq.com/openai/v1/chat/completions',
                 [
-                    'model'           => 'llama-3.1-8b-instant',
+                    'model'           => 'openai/gpt-oss-20b',
 
                     'response_format' => [
                         'type' => 'json_object',
