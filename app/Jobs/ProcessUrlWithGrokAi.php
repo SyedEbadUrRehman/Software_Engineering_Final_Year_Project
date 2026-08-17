@@ -194,15 +194,16 @@ class ProcessUrlWithGrokAi implements ShouldQueue
             ->post(
                 'https://api.groq.com/openai/v1/chat/completions',
                 [
-                    'model'           => 'openai/gpt-oss-20b',
+                    'model'            => 'openai/gpt-oss-20b',
 
-                    'response_format' => [
+                    'response_format'  => [
                         'type' => 'json_object',
                     ],
 
-                    'max_tokens'      => 200,
+                    'max_tokens'       => 600,
+                    'reasoning_effort' => 'low',
 
-                    'messages'        => [
+                    'messages'         => [
                         [
                             'role'    => 'system',
                             'content' => $aiPrompt,
@@ -217,7 +218,6 @@ class ProcessUrlWithGrokAi implements ShouldQueue
                     ],
                 ]
             );
-
         /*
         |--------------------------------------------------------------------------
         | STEP 4: Handle Groq response
